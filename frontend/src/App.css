@@ -49,6 +49,18 @@
   line-height:2em;
 }
 
+.failed {
+  background-color: #9A3324;
+  color: white;
+  margin: 1.1em;
+  padding: 0.2em 0.2em 0.2em 0.2em;
+  display: inline-block;
+  border-radius: 2em;
+  font-weight: bolder;
+  font-size: 0.8em;
+  line-height:2em;
+}
+
 .queued {
   background-color: #384d8e;
   color: white;

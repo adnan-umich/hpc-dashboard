@@ -45,7 +45,7 @@ class Squeue_active:
         # Check if the request was successful
         if response.status_code == 200:
             data = response.json()  # Parse the JSON data from the response
-            data_running = [x for x in data if x['state'] == "RUNNING"]
+            data_running = [x for x in data if (x['state'] == "RUNNING" or x['state'] == "COMPLETING")]
 
             return JsonResponse(data_running, safe=False)  # Return the data as a JSON response
         else:

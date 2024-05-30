@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useContext } from 'react';
+import React, { useState, useMemo, useContext, useEffect } from 'react';
 import { Container, createTheme, ThemeProvider, useTheme } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -18,6 +18,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { format, subDays, subMonths } from 'date-fns';
 import GL from './GL';
 import LH from './LH';
 import A2 from './A2';
@@ -112,18 +113,37 @@ const App = () => {
   const [searchValue, setSearchValue] = useState('');
   const [submittedSearch, setSubmittedSearch] = useState('');
   const [time, setTime] = useState('10');
-  const [open, setOpen] = useState(false);
+  const [_starttime, setStarttime] = useState('');
+  const [_endtime, setEndtime] = useState('');
 
-  const handleChange = (event) => {
+  useEffect(() => {
+    const now = new Date();
+    const end = format(subDays(now, -1), 'yyyy-MM-dd'); // Tomorrow's date
+    setEndtime(end);
+  
+    let start;
+    switch (time) {
+      case 10: // Today
+        start = format(now, 'yyyy-MM-dd');
+        break;
+      case 20: // Last 30 Days
+        start = format(subDays(now, 30), 'yyyy-MM-dd');
+        break;
+      case 30: // Last 3 Months
+        start = format(subMonths(now, 3), 'yyyy-MM-dd');
+        break;
+      case 40: // Last 6 Months
+        start = format(subMonths(now, 6), 'yyyy-MM-dd');
+        break;
+      default:
+        start = format(now, 'yyyy-MM-dd');
+        break;
+    }
+    setStarttime(start);
+  }, [time]); // Empty dependency array to ensure it only runs once on mount  
+
+  const handleTimeChange = (event) => {
     setTime(event.target.value);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const handleOpen = () => {
-    setOpen(true);
   };
 
   const handleSearchChange = (event) => {
@@ -136,15 +156,18 @@ const App = () => {
   };
 
   const renderComponent = () => {
+    if (!submittedSearch) {
+      return null;
+    }
     switch (selectedComponent) {
       case 'Great Lakes':
-        return <GL key={submittedSearch} searchValue={submittedSearch} />;
+        return <GL key={submittedSearch} searchValue={submittedSearch} _starttime={_starttime} _endtime={_endtime} />;
       case 'Armis2':
-        return <A2 key={submittedSearch} searchValue={submittedSearch} />;
+        return <A2 key={submittedSearch} searchValue={submittedSearch} _starttime={_starttime} _endtime={_endtime} />;
       case 'Lighthouse':
-        return <LH key={submittedSearch} searchValue={submittedSearch} />;
+        return <LH key={submittedSearch} searchValue={submittedSearch} _starttime={_starttime} _endtime={_endtime} />;
       default:
-        return <GL key={submittedSearch} searchValue={submittedSearch} />;
+        return <GL key={submittedSearch} searchValue={submittedSearch} _starttime={_starttime} _endtime={_endtime} />;
     }
   };
 
@@ -208,13 +231,13 @@ const App = () => {
                 <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
                   <Select
                     value={time}
-                    onChange={handleChange}
+                    onChange={handleTimeChange}
                     sx={{ color: 'white', borderColor: 'white' }}
-                    defaultValue={10}
                   >
                     <MenuItem value={10}>Today</MenuItem>
-                    <MenuItem value={20}>Last 6 Months</MenuItem>
-                    <MenuItem value={30}>This Year</MenuItem>
+                    <MenuItem value={20}>Last 30 Days</MenuItem>
+                    <MenuItem value={30}>Last 3 Months</MenuItem>
+                    <MenuItem value={40}>Last 6 Months</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>

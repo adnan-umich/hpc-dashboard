@@ -35,7 +35,7 @@ class Squeue:
         # Check if the request was successful
         if response.status_code == 200:
             data = response.json()  # Parse the JSON data from the response
-            data_queued = [x for x in data if x['state'] != "RUNNING"]
+            data_queued = [x for x in data if (x['state'] != "RUNNING" and x['state'] != "COMPLETING")]
             return JsonResponse(data_queued, safe=False)  # Return the data as a JSON response
         else:
             return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)

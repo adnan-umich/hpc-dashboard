@@ -16,12 +16,15 @@ import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
 import PendingIcon from '@mui/icons-material/Pending';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import TimerOffIcon from '@mui/icons-material/TimerOff';
+import SimCardAlertIcon from '@mui/icons-material/SimCardAlert';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import Zoom from '@mui/material/Zoom';
 // HPC Hooks
 import PartitionStats from './hooks/fetch-partition-data.js';
-import PieStats from './hooks/fetch-piechart-data.js';
+import RadarChart from './hooks/fetch-radar-data.js';
+
 
 function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command) {
   return {
@@ -40,7 +43,23 @@ function createData(jobid, status, warning, name, user, partition, nodes, cpus, 
   };
 }
 
-export default function CollapsibleTable({ searchValue }) {
+function createData_CompletedJob(jobid, state, user, partition, nodes, cpus, submittime, starttime, endtime, memory, elapsed_time) {
+  return {
+    id: jobid,
+    State: state,
+    User: user,
+    Partition: partition,
+    Nodes: nodes,
+    CPUS: cpus,
+    submittime,
+    starttime,
+    endtime,
+    Memory: memory,
+    Elapsed: elapsed_time,
+  };
+}
+
+export default function CollapsibleTable({ searchValue, _starttime, _endtime }) {
   const [value, setValue] = useState('1');
   const [rows, setRows] = useState([]);
   const [queuedRows, setQueuedRows] = useState([]);
@@ -48,11 +67,15 @@ export default function CollapsibleTable({ searchValue }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const [open, setOpen] = useState(false);
   const [open_pending_box, setOpen_PendingBox] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [open_completed_box, setOpen_CompleteBox] = useState(false);
+  const [active_loading, setLoading_active] = useState(true);
+  const [pending_loading, setLoading_pending] = useState(true);
+  const [complete_loading, setLoading_complete] = useState(true);
+
 
   // Fetch data on mount
   useEffect(() => {
-    setLoading(true);
+    setLoading_active(true);
     const fetchData = async () => {
       try {
          await axios.get(`http://localhost:8888/get_active/greatlakes/${searchValue}/`)
@@ -68,8 +91,9 @@ export default function CollapsibleTable({ searchValue }) {
       catch (error) {
         console.error('Error fetching the data', error);
       } finally {
-        setLoading(false);
+        setLoading_active(false);
       }
+      setLoading_pending(true);
       try {
         await axios.get(`http://localhost:8888/get_squeue/greatlakes/${searchValue}/`)
         .then(response => {
@@ -83,16 +107,32 @@ export default function CollapsibleTable({ searchValue }) {
       catch (error) {
         console.error('Error fetching the data', error);
       } finally {
-        setLoading(false);
+        setLoading_pending(false);
+      }
+      setLoading_complete(true);
+      try {
+        await axios.get(`http://localhost:8888/get_completed/greatlakes/${searchValue}/${_starttime}/${_endtime}`)
+        .then(response => {
+          console.log('Completed jobs data:', response.data); // Debugging log
+          const completedJobs = response.data.map(job => createData_CompletedJob(job.jobid, job.state, job.user, job.partition, job.nodes, job.cpus, job.submittime, job.starttime, job.endtime, job.memory, job.elapsed_time));
+          setCompleteJobs(completedJobs);
+        })
+        .catch(error => {
+          console.error('Error fetching completed jobs data:', error);
+        });}
+      catch (error) {
+        console.error('Error fetching the data', error);
+      } finally {
+        setLoading_complete(false);
       }
     };
     fetchData();
-  }, [searchValue]);
+  }, [searchValue, _starttime, _endtime]);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-  // For Active jobs
+  // For Active jobs popup box
   const handleRowClick = (params) => {
     setSelectedRow(params.row);
     setOpen(true);
@@ -102,7 +142,7 @@ export default function CollapsibleTable({ searchValue }) {
     setOpen(false);
   };
 
-  // For Pending Jobs
+  // For Pending Jobs popup box
   const handleRowClick_Pending = (params) => {
     setSelectedRow(params.row);
     setOpen_PendingBox(true);
@@ -111,6 +151,17 @@ export default function CollapsibleTable({ searchValue }) {
   const handleClose_Pending = () => {
     setOpen_PendingBox(false);
   };
+
+  // For Pending Jobs popup box
+  const handleRowClick_Completed = (params) => {
+    setSelectedRow(params.row);
+    setOpen_CompleteBox(true);
+  };
+
+  const handleClose_Completed = () => {
+    setOpen_CompleteBox(false);
+  };
+
 
   const active_columns = [
     { field: 'id', headerName: 'ID', width: 90 },
@@ -135,7 +186,12 @@ export default function CollapsibleTable({ searchValue }) {
             style = "queued"
             icon = <PendingIcon style={{ color: 'blue' }} />;
             status_msg = params.row.reason ? params.row.reason.split(' ')[0] : ""; // Taking the first word of the reason or an empty string if reason is null or undefined
-            break;  
+            break;
+          case 'COMPLETING':
+            style = "running"
+            icon = <TimerOffIcon style={{ color: 'green' }} />;
+            status_msg = params.row.reason ? params.row.reason.split(' ')[0] : ""; // Taking the first word of the reason or an empty string if reason is null or undefined
+            break;   
           default:
             icon = null;
         }
@@ -152,48 +208,6 @@ export default function CollapsibleTable({ searchValue }) {
     { field: 'cpus', headerName: 'CPU(s)', width: 110 },
     { field: 'memory', headerName: 'Memory', width: 110 },
     { field: 'timeleft', headerName: 'Time Left', width: 150 },
-  ];
-
-  const complete_column = [
-    { field: 'id', headerName: 'ID', width: 90 },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
-      width: 150,
-      renderCell: (params) => {
-        let icon;
-        let style;
-        let status_msg;
-        switch(params.value) {
-          case 'RUNNING':
-            icon = <AutorenewIcon style={{ color: 'green' }} />;
-            style = "running"
-            status_msg = params.value;
-            break;
-          case 'FAILED':
-            icon = <ErrorIcon style={{ color: 'red' }} />;
-            break;
-          case 'PENDING':
-            style = "queued"
-            icon = null
-            status_msg = params.row.reason ? params.row.reason.split(' ')[0] : ""; // Taking the first word of the reason or an empty string if reason is null or undefined
-            break;  
-          default:
-            icon = null;
-        }
-        return (
-          <Box display="flex" alignItems="center">
-            <div className={style}>{status_msg}</div>{params.row.warning == true && <WarningIcon style={{ color: 'orange', marginLeft: 8 }} />}
-          </Box>
-        );
-      }
-    },
-    { field: 'user', headerName: 'User', width: 250 },
-    { field: 'partition', headerName: 'Partition', width: 150 },
-    { field: 'nodes', headerName: 'Node(s)', width: 110 },
-    { field: 'cpus', headerName: 'CPU(s)', width: 110 },
-    { field: 'memory', headerName: 'Memory', width: 110 },
-    { field: 'timeleft', headerName: 'Alloc Time', width: 150 },
   ];
 
   const pending_column = [
@@ -218,7 +232,7 @@ export default function CollapsibleTable({ searchValue }) {
           case 'PENDING':
             style = "queued"
             icon = null
-            status_msg = params.row.reason ? params.row.reason.split(' ')[0] : ""; // Taking the first word of the reason or an empty string if reason is null or undefined
+            status_msg = params.row.reason ? params.row.reason.split(' ')[0] : "None"; // Taking the first word of the reason or an empty string if reason is null or undefined
             break;  
           default:
             icon = null;
@@ -238,12 +252,96 @@ export default function CollapsibleTable({ searchValue }) {
     { field: 'timeleft', headerName: 'Alloc Time', width: 150 },
   ];
 
+  
+  const complete_column = [
+    { field: 'id', headerName: 'ID', width: 90 },
+    { 
+      field: 'State', 
+      headerName: 'Status', 
+      width: 150,
+      renderCell: (params) => {
+        let icon;
+        let style;
+        let status_msg;
+        switch(params.value) {
+          case "COMPLETED":
+            icon = null;
+            style = "running"
+            status_msg = params.value;
+            break;
+          case 'FAILED':
+            icon = <ErrorIcon style={{ color: '#9A3324' }} />;
+            style = "failed"
+            status_msg = params.value;
+            break;
+          case 'TIMEOUT':
+            icon = <TimerOffIcon style={{ color: '#9A3324' }} />;
+            style = "failed"
+            status_msg = params.value;
+            break;  
+          case 'OOM':
+            icon = <SimCardAlertIcon style={{ color: '#9A3324' }} />;
+            style = "failed"
+            status_msg = params.value;
+            break;  
+          default:
+              icon = null;
+        }
+        return (
+          <Box display="flex" alignItems="center">
+            <div className={style}>{status_msg}</div>{icon}
+          </Box>
+        );
+      }
+    },
+    { field: 'User', headerName: 'User', width: 250 },
+    { field: 'Partition', headerName: 'Partition', width: 150 },
+    { field: 'Nodes', headerName: 'Node(s)', width: 110 },
+    { field: 'CPUS', headerName: 'CPU(s)', width: 110 },
+    { field: 'Memory', headerName: 'Memory', width: 110 },
+    { field: 'Elapsed', headerName: 'Elapsed Time', width: 110 },
+  ];
+
+const rawData = [
+  {
+    "uniqname": "mohapatr",
+    "partitions": "standard, standard"
+  },
+  {
+    "uniqname": "adnanzai",
+    "partitions": "gpu, gpu, standard, largemem, spgpu, standard"
+  },
+  {
+    "uniqname": "raeker",
+    "partitions": "standard"
+  }
+];
+
+const partitionTypes = ["standard", "largemem", "gpu", "spgpu", "spgpu2", "viz", "gpu_mig40"];
+
+const data = rawData.map(user => {
+  const partitionCounts = user.partitions.split(', ').reduce((acc, partition) => {
+    acc[partition] = (acc[partition] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    uniqname: user.uniqname,
+    partitions: partitionTypes.map(type => ({ type, value: partitionCounts[type] || 0 }))
+  };
+});
+
+const radarData = data.map(user => ({
+  label: user.uniqname,
+  data: user.partitions.map(p => p.value),
+}));
+
   return (
     <Paper square>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ padding: '1em' }}>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
-          <Card variant="outlined" sx={{ boxShadow: 2 }}>
-            <PieStats clusterName={'greatlakes'} />
+          <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
+            <RadarChart data={radarData} />
           </Card>
         </Box>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
@@ -300,6 +398,31 @@ export default function CollapsibleTable({ searchValue }) {
             </Card>
           </DialogContent>
         </Dialog>
+        <Dialog //Completed job window
+          open={open_completed_box}
+          onClose={handleClose_Completed}
+          TransitionComponent={Zoom}
+          keepMounted
+          aria-labelledby="alert-dialog-slide-title"
+          aria-describedby="alert-dialog-slide-description"
+        >
+          <DialogContent>
+            <Card variant="outlined" sx={{ boxShadow: 2 }}>
+              <CardContent>
+                <Typography variant="h6">Job Details</Typography>
+                <Typography>ID: {selectedRow?.id}</Typography>
+                <Typography>Name: {selectedRow?.name}</Typography>
+                <Typography>Status: {selectedRow?.status}</Typography>
+                <Typography>User: {selectedRow?.user}</Typography>
+                <Typography>Partition: {selectedRow?.partition}</Typography>
+                <Typography>Memory: {selectedRow?.memory}</Typography>
+                <Typography>Reason: {selectedRow?.reason}</Typography>
+                <Typography>Command: {selectedRow?.command}</Typography>
+                {/* Display additional details as needed */}
+              </CardContent>
+            </Card>
+          </DialogContent>
+        </Dialog>
         <Stack direction="column" sx={{ width: { xs: '100%', md: '40%' }, padding: '1em' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Additional content can be added here if needed */}
@@ -317,7 +440,7 @@ export default function CollapsibleTable({ searchValue }) {
         </Box>
         <TabPanel value="1">
           <div style={{ height: 400, width: '100%' }}>
-            {loading ? (
+            {active_loading ? (
               <Box
                 display="flex"
                 justifyContent="center"
@@ -342,7 +465,17 @@ export default function CollapsibleTable({ searchValue }) {
           </div>
         </TabPanel>
         <TabPanel value="2">
-          <div style={{ height: 400, width: '100%' }}>
+        <div style={{ height: 400, width: '100%' }}>
+            {pending_loading ? (
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                height="100%"
+              >
+                <CircularProgress />
+              </Box>
+            ) : (
             <DataGrid
               rows={queuedRows}
               columns={pending_column}
@@ -354,11 +487,21 @@ export default function CollapsibleTable({ searchValue }) {
               disableColumnMenu
               onRowClick={handleRowClick_Pending}
               sx = {{margin: '-1.6em -1.5em 0em -1.5em'}}
-            />
+            /> )}
           </div>
         </TabPanel>
         <TabPanel value="3">
         <div style={{ height: 400, width: '100%' }}>
+            {complete_loading ? (
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                height="100%"
+              >
+                <CircularProgress />
+              </Box>
+            ) : (
             <DataGrid
               rows={completedJobs}
               columns={complete_column}
@@ -368,10 +511,11 @@ export default function CollapsibleTable({ searchValue }) {
               disableColumnSelector
               disableColumnFilter
               disableColumnMenu
-              onRowClick={handleRowClick_Pending}
+              onRowClick={handleRowClick_Completed}
               sx = {{margin: '-1.6em -1.5em 0em -1.5em'}}
-            />
-          </div>        </TabPanel>
+            /> )}
+          </div>
+          </TabPanel>
       </TabContext>
     </Paper>
   );

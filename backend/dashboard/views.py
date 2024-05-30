@@ -5,18 +5,23 @@ from .services.partitions import Partitions
 from .services.squeue import Squeue
 from .services.squeue_active import Squeue_active
 from .services.my_job_statistics import MyJobStatistics
+from .services.completed_jobs import Completed
+
 
 def get_partition_stats(request, cluster='greatlakes'):
     return Partitions.fetch_partition_stats(cluster)
 
-def get_squeue(request, cluster='greatlakes', account='support'):
+def get_squeue(request, cluster='greatlakes', account=None):
     return Squeue.fetch_squeue(cluster, account)
 
-def get_active(request, cluster='greatlakes', account='support'):
+def get_active(request, cluster='greatlakes', account=None):
     return Squeue_active.fetch_running_jobs(cluster, account)
 
 def get_my_job_stats(request, cluster='greatlakes', jobid=None):
     return MyJobStatistics.get_my_job_statistics(cluster, jobid)
+
+def get_completed_jobs(request, cluster='greatlakes', account=None, starttime=None, endtime=None):
+    return Completed.fetch_completed(cluster=cluster, account=account, starttime=starttime, endtime=endtime)
 
 def fetch_root_account_from_shim(request):
     # URL of the external API

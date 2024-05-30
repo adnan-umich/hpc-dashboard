@@ -26,5 +26,5 @@ urlpatterns = [
     path('get_squeue/<str:cluster>/<str:account>/', views.get_squeue, name='get_squeue'),
     path('get_active/<str:cluster>/<str:account>/', views.get_active, name='get_active'),
     path('get_my_job_stats/<str:cluster>/<int:jobid>/', views.get_my_job_stats, name='get_my_job_stats'),
-
+    path('get_completed/<str:cluster>/<account>/<starttime>/<endtime>', views.get_completed_jobs, name='get_completed_jobs'),
 ]
