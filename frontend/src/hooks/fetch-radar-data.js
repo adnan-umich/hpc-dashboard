@@ -1,24 +1,11 @@
-// src/RadarChart.js
 import React from 'react';
 import { Radar } from 'react-chartjs-2';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const RadarChart = ({ data }) => {
-  const chartData = {
-    labels: ["standard", "largemem", "gpu", "spgpu", "spgpu2", "gpu_mig40", "viz", "build"],
-    datasets: data.map(user => ({
-      label: user.label,
-      data: user.data,
-      backgroundColor: 'rgba(34, 202, 236, .2)',
-      borderColor: 'rgba(34, 202, 236, 1)',
-      borderWidth: 2,
-      pointBackgroundColor: 'rgba(34, 202, 236, 1)'
-    }))
-  };
-
-  const options = {
+const RadarChart = ({ data, themeOptions }) => {
+  const defaultOptions = {
     scales: {
       r: {
         beginAtZero: true,
@@ -27,10 +14,25 @@ const RadarChart = ({ data }) => {
     },
     plugins: {
       legend: false
-  }
-};
+    }
+  };
 
-  return <Radar data={chartData} options={options} />;
+  const combinedOptions = {
+    ...defaultOptions,
+    ...themeOptions,
+    scales: {
+      r: {
+        ...defaultOptions.scales.r,
+        ...(themeOptions.scales ? themeOptions.scales.r : {}),
+      }
+    },
+    plugins: {
+      ...defaultOptions.plugins,
+      ...(themeOptions.plugins ? themeOptions.plugins : {}),
+    }
+  };
+
+  return <Radar data={data} options={combinedOptions} />;
 };
 
 export default RadarChart;

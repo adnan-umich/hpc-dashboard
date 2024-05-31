@@ -6,7 +6,7 @@ from .services.squeue import Squeue
 from .services.squeue_active import Squeue_active
 from .services.my_job_statistics import MyJobStatistics
 from .services.completed_jobs import Completed
-
+from .services.radar import MyRadar
 
 def get_partition_stats(request, cluster='greatlakes'):
     return Partitions.fetch_partition_stats(cluster)
@@ -22,6 +22,9 @@ def get_my_job_stats(request, cluster='greatlakes', jobid=None):
 
 def get_completed_jobs(request, cluster='greatlakes', account=None, starttime=None, endtime=None):
     return Completed.fetch_completed(cluster=cluster, account=account, starttime=starttime, endtime=endtime)
+
+def get_radar_stats(request, cluster='greatlakes', account=None, starttime=None, endtime=None):
+    return MyRadar.get_radar(cluster=cluster, account=account, starttime=starttime, endtime=endtime)
 
 def fetch_root_account_from_shim(request):
     # URL of the external API
