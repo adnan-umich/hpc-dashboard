@@ -64,6 +64,9 @@ class Completed:
                 job['elapsed_time'] = get_time_hh_mm_ss(job['elapsed_time'])
                 if job['state'] == "OUT_OF_MEMORY":
                     job['state'] = 'OOM'
+                elif "CANCELLED" in job['state']:
+                    job['state'] = 'CANCELLED'
+                    
             return JsonResponse(data, safe=False)  # Return the data as a JSON response
         else:
             return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)

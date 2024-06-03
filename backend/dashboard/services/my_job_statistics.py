@@ -45,6 +45,6 @@ class MyJobStatistics:
         # Check if the request was successful
         if response.status_code == 200:
             data = response.json()
-            return JsonResponse(data, safe=False)  # Return the data as a JSON response
+            return JsonResponse(data['report'], safe=False)  # Return the data as a JSON response
         else:
             return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)

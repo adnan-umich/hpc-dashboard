@@ -4,6 +4,7 @@ import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
@@ -26,6 +27,8 @@ import { useTheme } from '@mui/material/styles';
 // HPC Hooks
 import PartitionStats from './hooks/fetch-partition-data.js';
 import RadarChart from './hooks/fetch-radar-data.js';
+import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
+
 
 
 function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command) {
@@ -61,7 +64,7 @@ function createData_CompletedJob(jobid, state, user, partition, nodes, cpus, sub
   };
 }
 
-function createRadarData(partitionData, normalize = true, useLog = true) {
+function createRadarData(partitionData, normalize = false, useLog = false) {
   const defaultPartitions = {
     standard: 0,
     build: 0,
@@ -117,6 +120,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const [pending_loading, setLoading_pending] = useState(true);
   const [complete_loading, setLoading_complete] = useState(true);
   const [radar_loading, setLoading_radar] = useState(true);
+  const [jobStats, setJobStats] = useState(''); // New state for job stats
+
 
   // Fetch data on mount
   useEffect(() => {
@@ -188,10 +193,13 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-  // For Active jobs popup box
-  const handleRowClick = (params) => {
+
+// For Active jobs popup box
+  const handleRowClick = async (params) => {
     setSelectedRow(params.row);
     setOpen(true);
+    const stats = await fetchJobStats('greatlakes', params.row.id);
+    setJobStats(stats);
   };
 
   const handleClose = () => {
@@ -199,9 +207,11 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   };
 
   // For Pending Jobs popup box
-  const handleRowClick_Pending = (params) => {
+  const handleRowClick_Pending = async (params) => {
     setSelectedRow(params.row);
     setOpen_PendingBox(true);
+    const stats = await fetchJobStats('greatlakes', params.row.id);
+    setJobStats(stats);
   };
 
   const handleClose_Pending = () => {
@@ -328,6 +338,11 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             style = "failed"
             status_msg = params.value;
             break;
+          case 'CANCELLED':
+            icon = null;
+            style = "failed"
+            status_msg = params.value;
+            break;
           case 'TIMEOUT':
             icon = <TimerOffIcon style={{ color: '#9A3324' }} />;
             style = "failed"
@@ -397,6 +412,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ padding: '1em' }}>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
           <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
+          <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Cluster Usage</Typography>
             {radar_loading ? <CircularProgress /> : <RadarChart data={radarData} themeOptions={themeOptions} />}
           </Card>
         </Box>
@@ -405,40 +421,166 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             <PartitionStats clusterName={'greatlakes'} />
           </Card>
         </Box>
-        <Dialog open={open} onClose={handleClose} TransitionComponent={Zoom}>
+        <Dialog open={open} onClose={handleClose} TransitionComponent={Zoom} maxWidth="md" fullWidth>
         <DialogContent>
           {selectedRow && (
             <Box>
               <Typography variant="h6">Job Details</Typography>
-              <Typography>ID: {selectedRow.id}</Typography>
-              <Typography>Status: {selectedRow.status}</Typography>
-              <Typography>User: {selectedRow.user}</Typography>
-              <Typography>Partition: {selectedRow.partition}</Typography>
-              <Typography>Nodes: {selectedRow.nodes}</Typography>
-              <Typography>CPUs: {selectedRow.cpus}</Typography>
-              <Typography>Memory: {selectedRow.memory}</Typography>
-              <Typography>Time Left: {selectedRow.timeleft}</Typography>
-              <Typography>Reason: {selectedRow.reason}</Typography>
-              <Typography>Command: {selectedRow.command}</Typography>
+              
+              <Box display="flex" justifyContent="space-between">
+                <Typography>ID:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.id}</Typography>
+              </Box>
+              
+              <Box display="flex" justifyContent="space-between">
+                <Typography>Status:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.status}</Typography>
+              </Box>
+              
+              <Box display="flex" justifyContent="space-between">
+                <Typography>User:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.user}</Typography>
+              </Box>
+
+              <Box mt={2}>
+                <Typography variant="subtitle1">Compute Resources</Typography>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Partition:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.partition}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Nodes:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.nodes}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>CPUs:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.cpus}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Memory:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.memory}</Typography>
+                </Box>
+              </Box>
+              <Box mt={2}>
+                <Typography variant="subtitle1">Slurm Details</Typography>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Time Left:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.timeleft}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" style={{ width: '100%', wordWrap: 'break-word' }}>
+                  <Typography>Script:</Typography>
+                  <Typography textAlign="right">{selectedRow.command}</Typography>
+                </Box>
+              </Box>
+              <Box mt={2}>
+                <Typography variant="subtitle1">My Job Statistics</Typography>
+                <TextField
+                  value={jobStats}
+                  multiline
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  variant="outlined"
+                  style={{ backgroundColor: '#f0f0f0', borderRadius: '4px' }}
+                />
+              </Box>
             </Box>
           )}
         </DialogContent>
       </Dialog>
-      <Dialog open={open_pending_box} onClose={handleClose_Pending} TransitionComponent={Zoom}>
-        <DialogContent>
+      <Dialog open={open_pending_box} onClose={handleClose_Pending} TransitionComponent={Zoom} maxWidth="md" fullWidth>
+      <DialogContent>
           {selectedRow && (
             <Box>
               <Typography variant="h6">Pending Job Details</Typography>
-              <Typography>ID: {selectedRow.id}</Typography>
-              <Typography>Status: {selectedRow.status}</Typography>
-              <Typography>User: {selectedRow.user}</Typography>
-              <Typography>Partition: {selectedRow.partition}</Typography>
-              <Typography>Nodes: {selectedRow.nodes}</Typography>
-              <Typography>CPUs: {selectedRow.cpus}</Typography>
-              <Typography>Memory: {selectedRow.memory}</Typography>
-              <Typography>Time Left: {selectedRow.timeleft}</Typography>
-              <Typography>Reason: {selectedRow.reason}</Typography>
-              <Typography>Command: {selectedRow.command}</Typography>
+              
+              <Box display="flex" justifyContent="space-between">
+                <Typography>ID:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.id}</Typography>
+              </Box>
+
+              <Box display="flex" justifyContent="space-between">
+                <Typography>Job Name:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.name}</Typography>
+              </Box>
+              
+              <Box display="flex" justifyContent="space-between">
+                <Typography>Status:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.status}</Typography>
+              </Box>
+
+              <Box display="flex" justifyContent="space-between">
+                <Typography>Reason:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.reason}</Typography>
+              </Box>
+              
+              <Box display="flex" justifyContent="space-between">
+                <Typography>User:</Typography>
+                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                <Typography textAlign="right">{selectedRow.user}</Typography>
+              </Box>
+
+              <Box mt={2}>
+                <Typography variant="subtitle1">Compute Resources</Typography>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Partition:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.partition}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Nodes:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.nodes}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>CPUs:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.cpus}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Memory:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.memory}</Typography>
+                </Box>
+              </Box>
+              <Box mt={2}>
+                <Typography variant="subtitle1">Slurm Details</Typography>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Time Left:</Typography>
+                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
+                  <Typography textAlign="right">{selectedRow.timeleft}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" style={{ width: '100%', wordWrap: 'break-word' }}>
+                  <Typography>Script:</Typography>
+                  <Typography textAlign="right">{selectedRow.command}</Typography>
+                </Box>
+              </Box>
+              <Box mt={2}>
+                <Typography variant="subtitle1">My Job Statistics</Typography>
+                <TextField
+                  value={jobStats}
+                  multiline
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  variant="outlined"
+                  style={{ backgroundColor: '#f0f0f0', borderRadius: '4px' }}
+                />
+              </Box>
             </Box>
           )}
         </DialogContent>
