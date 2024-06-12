@@ -796,7 +796,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
 
                   <Box mb={2}>
                     {[
-                      { label: 'Elapsed Time', value: selectedRow.timeleft },
+                      { label: 'Elapsed Time', value: selectedRow.Elapsed },
                       { label: 'Submit Date', value: selectedRow.submittime },
                       { label: 'End Date', value: selectedRow.endtime },
                       { label: 'Work Directory', value: selectedRow.workdir },
