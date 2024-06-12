@@ -28,4 +28,7 @@ urlpatterns = [
     path('get_my_job_stats/<str:cluster>/<int:jobid>/', views.get_my_job_stats, name='get_my_job_stats'),
     path('get_completed/<str:cluster>/<account>/<starttime>/<endtime>', views.get_completed_jobs, name='get_completed_jobs'),
     path('get_radar/<str:cluster>/<account>/<starttime>/<endtime>', views.get_radar_stats, name='get_radar'),
+    path('get_tres/<str:cluster>/<jobid>', views.get_tres, name='get_tres'),
+    path('get_seff/<str:cluster>/<jobid>', views.get_seff, name='get_seff'),
+
 ]

@@ -5,6 +5,9 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
+import Divider from '@mui/material/Divider';
+import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
@@ -28,10 +31,11 @@ import { useTheme } from '@mui/material/styles';
 import PartitionStats from './hooks/fetch-partition-data.js';
 import RadarChart from './hooks/fetch-radar-data.js';
 import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
+import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
+import { fetchSeff } from './hooks/fetch-seff.js'; 
 
 
-
-function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command) {
+function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command, start_time) {
   return {
     id: jobid,
     status,
@@ -45,22 +49,26 @@ function createData(jobid, status, warning, name, user, partition, nodes, cpus, 
     memory,
     reason,
     command,
+    start_time,
   };
 }
 
-function createData_CompletedJob(jobid, state, user, partition, nodes, cpus, submittime, starttime, endtime, memory, elapsed_time) {
+function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpus, submittime, endtime, starttime, memory, elapsed_time, workdir, submit) {
   return {
     id: jobid,
+    name,
     State: state,
     User: user,
     Partition: partition,
     Nodes: nodes,
     CPUS: cpus,
     submittime,
-    starttime,
     endtime,
+    starttime,
     Memory: memory,
     Elapsed: elapsed_time,
+    workdir: workdir,
+    submit: submit,
   };
 }
 
@@ -121,6 +129,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const [complete_loading, setLoading_complete] = useState(true);
   const [radar_loading, setLoading_radar] = useState(true);
   const [jobStats, setJobStats] = useState(''); // New state for job stats
+  const [jobTRES, setJobTRES] = useState(''); 
+  const [jobSEFF, setJobSEFF] = useState(''); 
 
 
   // Fetch data on mount
@@ -148,7 +158,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         await axios.get(`http://localhost:8888/get_squeue/greatlakes/${searchValue}/`)
         .then(response => {
           console.log('Queued jobs data:', response.data); // Debugging log
-          const queuedJobs = response.data.map(job => createData(job.jobid, job.state, true, job.name, job.user, job.partition, job.nodes, job.cpus, job.time_left, job.max_memory, job.reason, job.command));
+          const queuedJobs = response.data.map(job => createData(job.jobid, job.state, false, job.name, job.user, job.partition, job.nodes, job.cpus, job.time_left, job.max_memory, job.reason, job.command, job.start_time));
           setQueuedRows(queuedJobs);
         })
         .catch(error => {
@@ -164,7 +174,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         await axios.get(`http://localhost:8888/get_completed/greatlakes/${searchValue}/${_starttime}/${_endtime}`)
         .then(response => {
           console.log('Completed jobs data:', response.data); // Debugging log
-          const completedJobs = response.data.map(job => createData_CompletedJob(job.jobid, job.state, job.user, job.partition, job.nodes, job.cpus, job.submittime, job.starttime, job.endtime, job.memory, job.elapsed_time));
+          const completedJobs = response.data.map(job => createData_CompletedJob(job.jobid, job.job_name, job.state, job.user, job.partition, job.nodes, job.cpus, job.submittime, job.endtime, job.starttime, job.memory, job.elapsed_time, job.workdir, job.submitline));
           setCompleteJobs(completedJobs);
         })
         .catch(error => {
@@ -198,8 +208,15 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const handleRowClick = async (params) => {
     setSelectedRow(params.row);
     setOpen(true);
+
     const stats = await fetchJobStats('greatlakes', params.row.id);
     setJobStats(stats);
+
+    const tres = await fetchJobTres('greatlakes', params.row.id);
+    setJobTRES(tres);
+
+    const seff = await fetchSeff('greatlakes', params.row.id);
+    setJobSEFF(seff);
   };
 
   const handleClose = () => {
@@ -210,18 +227,36 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const handleRowClick_Pending = async (params) => {
     setSelectedRow(params.row);
     setOpen_PendingBox(true);
+
     const stats = await fetchJobStats('greatlakes', params.row.id);
     setJobStats(stats);
+
+    const tres = await fetchJobTres('greatlakes', params.row.id);
+    setJobTRES(tres);
+
+    const seff = await fetchSeff('greatlakes', params.row.id);
+    setJobSEFF(seff);
+
   };
 
   const handleClose_Pending = () => {
     setOpen_PendingBox(false);
   };
 
-  // For Pending Jobs popup box
-  const handleRowClick_Completed = (params) => {
+  // For Completed Jobs popup box
+  const handleRowClick_Completed = async (params) => {
     setSelectedRow(params.row);
     setOpen_CompleteBox(true);
+
+    const stats = await fetchJobStats('greatlakes', params.row.id);
+    setJobStats(stats);
+
+    const tres = await fetchJobTres('greatlakes', params.row.id);
+    setJobTRES(tres);
+
+    const seff = await fetchSeff('greatlakes', params.row.id);
+    setJobSEFF(seff);
+
   };
 
   const handleClose_Completed = () => {
@@ -406,6 +441,11 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   };
 
   const themeOptions = theme.palette.mode === 'dark' ? darkThemeOptions : lightThemeOptions;
+  const [accordionExpanded, setAccordionExpanded] = useState(false);
+
+  const toggleAccordion = () => {
+    setAccordionExpanded(!accordionExpanded);
+  };
 
   return (
     <Paper square>
@@ -421,188 +461,430 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             <PartitionStats clusterName={'greatlakes'} />
           </Card>
         </Box>
-        <Dialog open={open} onClose={handleClose} TransitionComponent={Zoom} maxWidth="md" fullWidth>
-        <DialogContent>
-          {selectedRow && (
-            <Box>
-              <Typography variant="h6">Job Details</Typography>
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography>ID:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.id}</Typography>
-              </Box>
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Status:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.status}</Typography>
-              </Box>
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography>User:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.user}</Typography>
-              </Box>
+        <Dialog open={open} onClose={handleClose} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
+          <DialogContent>
+            {selectedRow && (
+              <Box>
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>
+                    Job Details
+                  </Typography>
 
-              <Box mt={2}>
-                <Typography variant="subtitle1">Compute Resources</Typography>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Partition:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.partition}</Typography>
+                  <Box mb={2}>
+                    {[
+                      { label: 'ID', value: selectedRow.id },
+                      { label: 'Name', value: selectedRow.name },
+                      { label: 'Status', value: selectedRow.status },
+                      { label: 'User', value: selectedRow.user },
+                    ].map((detail, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{detail.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {detail.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    Compute Resources
+                  </Typography>
+
+                  <Box mb={2}>
+                    {[
+                      { label: 'Partition', value: selectedRow.partition },
+                      { label: 'Nodes', value: selectedRow.nodes },
+                      { label: 'CPUs', value: selectedRow.cpus },
+                      { label: 'Memory', value: selectedRow.memory },
+                    ].map((resource, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{resource.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {resource.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    Slurm Details
+                  </Typography>
+
+                  <Box mb={2}>
+                    {[
+                      { label: 'Time Left', value: selectedRow.timeleft },
+                      { label: 'Script', value: selectedRow.command },
+                    ].map((slurmDetail, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{slurmDetail.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {slurmDetail.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    TRES:
+                  </Typography>
+
+                  <Box display="flex" flexWrap="wrap" justifyContent="center" mb={2}>
+                    {Array.isArray(jobTRES) && jobTRES.length > 0 ? (
+                      jobTRES.map((job, index) => (
+                        <Box
+                          key={index}
+                          border={1}
+                          borderColor="grey.300"
+                          borderRadius={4}
+                          p={2}
+                          m={1}
+                          width="200px"
+                          bgcolor="background.paper"
+                        >
+                          {Object.entries(job).map(([key, value]) => (
+                            <Box display="flex" justifyContent="space-between" key={key} my={0.5}>
+                              <Typography variant="body2" color="textSecondary">
+                                {key}:
+                              </Typography>
+                              <Typography variant="body2">{value}</Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="textSecondary">
+                        No TRES available.
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Nodes:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.nodes}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>CPUs:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.cpus}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Memory:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.memory}</Typography>
-                </Box>
+
+                <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">My Job Statistics</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={jobStats}
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      variant="outlined"
+                      sx={{ borderRadius: '4px' }}
+                    />
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">Seff Output</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={jobSEFF}
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      variant="outlined"
+                      sx={{ borderRadius: '4px' }}
+                    />
+                  </AccordionDetails>
+                </Accordion>
               </Box>
-              <Box mt={2}>
-                <Typography variant="subtitle1">Slurm Details</Typography>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Time Left:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.timeleft}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between" style={{ width: '100%', wordWrap: 'break-word' }}>
-                  <Typography>Script:</Typography>
-                  <Typography textAlign="right">{selectedRow.command}</Typography>
-                </Box>
-              </Box>
-              <Box mt={2}>
-                <Typography variant="subtitle1">My Job Statistics</Typography>
-                <TextField
-                  value={jobStats}
-                  multiline
-                  fullWidth
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                  variant="outlined"
-                  style={{ backgroundColor: '#f0f0f0', borderRadius: '4px' }}
-                />
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
       <Dialog open={open_pending_box} onClose={handleClose_Pending} TransitionComponent={Zoom} maxWidth="md" fullWidth>
       <DialogContent>
-          {selectedRow && (
-            <Box>
-              <Typography variant="h6">Pending Job Details</Typography>
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography>ID:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.id}</Typography>
-              </Box>
+            {selectedRow && (
+              <Box>
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>
+                    Job Details
+                  </Typography>
 
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Job Name:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.name}</Typography>
-              </Box>
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Status:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.status}</Typography>
-              </Box>
+                  <Box mb={2}>
+                    {[
+                      { label: 'ID', value: selectedRow.id },
+                      { label: 'Name', value: selectedRow.name },
+                      { label: 'Reason', value: selectedRow.reason },
+                      { label: 'Status', value: selectedRow.status },
+                      { label: 'User', value: selectedRow.user },
+                    ].map((detail, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{detail.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {detail.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
 
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Reason:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.reason}</Typography>
-              </Box>
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography>User:</Typography>
-                <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                <Typography textAlign="right">{selectedRow.user}</Typography>
-              </Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Compute Resources
+                  </Typography>
 
-              <Box mt={2}>
-                <Typography variant="subtitle1">Compute Resources</Typography>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Partition:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.partition}</Typography>
+                  <Box mb={2}>
+                    {[
+                      { label: 'Partition', value: selectedRow.partition },
+                      { label: 'Nodes', value: selectedRow.nodes },
+                      { label: 'CPUs', value: selectedRow.cpus },
+                      { label: 'Memory', value: selectedRow.memory },
+                    ].map((resource, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{resource.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {resource.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    Slurm Details
+                  </Typography>
+
+                  <Box mb={2}>
+                    {[
+                      { label: 'Time Left', value: selectedRow.timeleft },
+                      { label: 'Script', value: selectedRow.command },
+                      { label: 'Start Time', value: selectedRow.start_time },
+                    ].map((slurmDetail, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{slurmDetail.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {slurmDetail.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    TRES:
+                  </Typography>
+
+                  <Box display="flex" flexWrap="wrap" justifyContent="center" mb={2}>
+                    {Array.isArray(jobTRES) && jobTRES.length > 0 ? (
+                      jobTRES.map((job, index) => (
+                        <Box
+                          key={index}
+                          border={1}
+                          borderColor="grey.300"
+                          borderRadius={4}
+                          p={2}
+                          m={1}
+                          width="200px"
+                          bgcolor="background.paper"
+                        >
+                          {Object.entries(job).map(([key, value]) => (
+                            <Box display="flex" justifyContent="space-between" key={key} my={0.5}>
+                              <Typography variant="body2" color="textSecondary">
+                                {key}:
+                              </Typography>
+                              <Typography variant="body2">{value}</Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="textSecondary">
+                        No TRES available.
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Nodes:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.nodes}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>CPUs:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.cpus}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Memory:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.memory}</Typography>
-                </Box>
+
+                <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">My Job Statistics</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={jobStats}
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      variant="outlined"
+                      sx={{ borderRadius: '4px' }}
+                    />
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">Seff Output</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={jobSEFF}
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      variant="outlined"
+                      sx={{ borderRadius: '4px' }}
+                    />
+                  </AccordionDetails>
+                </Accordion>
               </Box>
-              <Box mt={2}>
-                <Typography variant="subtitle1">Slurm Details</Typography>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography>Time Left:</Typography>
-                  <Box flexGrow={1} mx={1} borderBottom="1px dotted #000"></Box>
-                  <Typography textAlign="right">{selectedRow.timeleft}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between" style={{ width: '100%', wordWrap: 'break-word' }}>
-                  <Typography>Script:</Typography>
-                  <Typography textAlign="right">{selectedRow.command}</Typography>
-                </Box>
-              </Box>
-              <Box mt={2}>
-                <Typography variant="subtitle1">My Job Statistics</Typography>
-                <TextField
-                  value={jobStats}
-                  multiline
-                  fullWidth
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                  variant="outlined"
-                  style={{ backgroundColor: '#f0f0f0', borderRadius: '4px' }}
-                />
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
+            )}
+          </DialogContent>
       </Dialog>
-      <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom}>
-        <DialogContent>
-          {selectedRow && (
-            <Box>
-              <Typography variant="h6">Completed Job Details</Typography>
-              <Typography>ID: {selectedRow.id}</Typography>
-              <Typography>Status: {selectedRow.Status}</Typography>
-              <Typography>User: {selectedRow.User}</Typography>
-              <Typography>Partition: {selectedRow.Partition}</Typography>
-              <Typography>Nodes: {selectedRow.Nodes}</Typography>
-              <Typography>CPUs: {selectedRow.CPUS}</Typography>
-              <Typography>Memory: {selectedRow.Memory}</Typography>
-              <Typography>Elapsed Time: {selectedRow.Elapsed}</Typography>
-              <Typography>Reason: {selectedRow.reason}</Typography>
-              <Typography>Command: {selectedRow.command}</Typography>
-            </Box>
-          )}
-        </DialogContent>
+      <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom} maxWidth="md" fullWidth>
+          <DialogContent>
+            {selectedRow && (
+              <Box>
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>
+                    Completed Job Details
+                  </Typography>
+
+                  <Box mb={2}>
+                    {[
+                      { label: 'ID', value: selectedRow.id },
+                      { label: 'Name', value: selectedRow.name },
+                      { label: 'Status', value: selectedRow.State },
+                      { label: 'User', value: selectedRow.User },
+                    ].map((detail, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{detail.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {detail.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    Compute Resources
+                  </Typography>
+
+                  <Box mb={2}>
+                    {[
+                      { label: 'Partition', value: selectedRow.Partition },
+                      { label: 'Nodes', value: selectedRow.Nodes },
+                      { label: 'CPUs', value: selectedRow.CPUS },
+                      { label: 'Memory', value: selectedRow.Memory },
+                    ].map((resource, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{resource.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {resource.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    Slurm Details
+                  </Typography>
+
+                  <Box mb={2}>
+                    {[
+                      { label: 'Elapsed Time', value: selectedRow.timeleft },
+                      { label: 'Submit Date', value: selectedRow.submittime },
+                      { label: 'End Date', value: selectedRow.endtime },
+                      { label: 'Work Directory', value: selectedRow.workdir },
+                      { label: 'Submission Command', value: selectedRow.submit },
+                    ].map((slurmDetail, index) => (
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
+                        <Typography variant="body1">{slurmDetail.label}:</Typography>
+                        <Divider orientation="horizontal" flexItem sx={{ flexGrow: 1, mx: 1 }} />
+                        <Typography variant="body1" textAlign="right">
+                          {slurmDetail.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle1" gutterBottom>
+                    TRES:
+                  </Typography>
+
+                  <Box display="flex" flexWrap="wrap" justifyContent="center" mb={2}>
+                    {Array.isArray(jobTRES) && jobTRES.length > 0 ? (
+                      jobTRES.map((job, index) => (
+                        <Box
+                          key={index}
+                          border={1}
+                          borderColor="grey.300"
+                          borderRadius={4}
+                          p={2}
+                          m={1}
+                          width="200px"
+                          bgcolor="background.paper"
+                        >
+                          {Object.entries(job).map(([key, value]) => (
+                            <Box display="flex" justifyContent="space-between" key={key} my={0.5}>
+                              <Typography variant="body2" color="textSecondary">
+                                {key}:
+                              </Typography>
+                              <Typography variant="body2">{value}</Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="textSecondary">
+                        No TRES available.
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+
+                <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">My Job Statistics</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={jobStats}
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      variant="outlined"
+                      sx={{ borderRadius: '4px' }}
+                    />
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">Seff Output</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={jobSEFF}
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      variant="outlined"
+                      sx={{ borderRadius: '4px' }}
+                    />
+                  </AccordionDetails>
+                </Accordion>
+              </Box>
+            )}
+          </DialogContent>
       </Dialog>
         <Stack direction="column" sx={{ width: { xs: '100%', md: '40%' }, padding: '1em' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

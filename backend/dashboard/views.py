@@ -7,6 +7,9 @@ from .services.squeue_active import Squeue_active
 from .services.my_job_statistics import MyJobStatistics
 from .services.completed_jobs import Completed
 from .services.radar import MyRadar
+from .services.get_tres import Tres
+from .services.seff import Seff
+
 
 def get_partition_stats(request, cluster='greatlakes'):
     return Partitions.fetch_partition_stats(cluster)
@@ -25,6 +28,12 @@ def get_completed_jobs(request, cluster='greatlakes', account=None, starttime=No
 
 def get_radar_stats(request, cluster='greatlakes', account=None, starttime=None, endtime=None):
     return MyRadar.get_radar(cluster=cluster, account=account, starttime=starttime, endtime=endtime)
+
+def get_tres(request, cluster='greatlakes', jobid=None):
+    return Tres.fetch_tres(cluster=cluster, jobid=jobid)
+
+def get_seff(request, cluster='greatlakes', jobid=None):
+    return Seff.get_seff(cluster=cluster, jobid=jobid)
 
 def fetch_root_account_from_shim(request):
     # URL of the external API

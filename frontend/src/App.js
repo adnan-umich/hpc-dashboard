@@ -118,7 +118,7 @@ const App = () => {
 
   useEffect(() => {
     const now = new Date();
-    const end = format(subDays(now, -1), 'yyyy-MM-dd'); // Tomorrow's date
+    const end = format(subDays(now, -2), 'yyyy-MM-dd'); // Day after tomorrow's date
     setEndtime(end);
   
     let start;
