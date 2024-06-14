@@ -703,7 +703,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     )}
                   </Box>
                 </Box>
-
                 <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography variant="subtitle1">My Job Statistics</Typography>
@@ -721,7 +720,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     />
                   </AccordionDetails>
                 </Accordion>
-
                 <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography variant="subtitle1">Seff Output</Typography>
@@ -743,13 +741,13 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             )}
           </DialogContent>
       </Dialog>
-      <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom} maxWidth="md" fullWidth>
+      <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
           <DialogContent>
             {selectedRow && (
               <Box>
                 <Box mb={3}>
                   <Typography variant="h6" gutterBottom>
-                    Completed Job Details
+                    Job Details
                   </Typography>
 
                   <Box mb={2}>

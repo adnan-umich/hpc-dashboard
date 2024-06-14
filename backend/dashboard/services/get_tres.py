@@ -70,7 +70,12 @@ class Tres:
             result = [parse_item(data) for data in data]
 
             # Flatten the list of lists
-            final_result = [d for sublist in result for d in sublist]
+            result = [d for sublist in result for d in sublist]
+
+            unique_dicts = {frozenset(d.items()) for d in result}
+            
+            # Convert the set of frozensets back to a list of dictionaries
+            final_result = [dict(d) for d in unique_dicts]
                                 
             return JsonResponse(final_result, safe=False)  # Return the data as a JSON response
         else:
