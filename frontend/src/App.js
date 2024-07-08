@@ -173,9 +173,9 @@ const App = () => {
 
   return (
     <ToggleColorMode>
-      <Container>
+      <Stack>
         <Box sx={{ flexGrow: 1 }}>
-          <AppBar position="static">
+          <AppBar sx = {{width: '100vw'}}>
             <Toolbar sx={{ backgroundColor: '#00274C' }}>
               <IconButton
                 size="large"
@@ -259,7 +259,7 @@ const App = () => {
           </AppBar>
         </Box>
         {renderComponent()}
-      </Container>
+      </Stack>
     </ToggleColorMode>
   );
 };

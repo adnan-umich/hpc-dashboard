@@ -44,35 +44,42 @@ class Partitions:
         if response.status_code == 200:
             data = response.json()  # Parse the JSON data from the response
             result = {'mixed': {}, 'idle': {}}
-            # Transform into mixed vs idle comparison
-            for item in data:
-                state = item['State']
-                partition = item['Partition']
-                nodes = item['Nodes']
+            if len(data) > 0:
+                # Transform into mixed vs idle comparison
+                for item in data:
+                    state = item['State']
+                    partition = item['Partition']
+                    nodes = item['Nodes']
 
-                if state not in result:
-                    continue
+                    if state not in result:
+                        continue
 
-                if partition not in result[state]:
-                    result[state][partition] = 0
+                    if partition not in result[state]:
+                        result[state][partition] = 0
 
-                result[state][partition] += nodes
+                    result[state][partition] += nodes
 
-                # Ensure both 'mixed' and 'idle' have the same partition names
-                mixed_partitions = set(result['mixed'].keys())
-                idle_partitions = set(result['idle'].keys())
+                    # Ensure both 'mixed' and 'idle' have the same partition names
+                    mixed_partitions = set(result['mixed'].keys())
+                    idle_partitions = set(result['idle'].keys())
 
-                # Find partitions that are in 'mixed' but not in 'idle' and vice versa
-                mixed_not_in_idle = mixed_partitions - idle_partitions
-                idle_not_in_mixed = idle_partitions - mixed_partitions
+                    # Find partitions that are in 'mixed' but not in 'idle' and vice versa
+                    mixed_not_in_idle = mixed_partitions - idle_partitions
+                    idle_not_in_mixed = idle_partitions - mixed_partitions
 
-                # Add missing partitions with value 0
-                for partition in mixed_not_in_idle:
-                    result['idle'][partition] = 0
+                    # Add missing partitions with value 0
+                    for partition in mixed_not_in_idle:
+                        result['idle'][partition] = 0
 
-                for partition in idle_not_in_mixed:
-                    result['mixed'][partition] = 0
+                    for partition in idle_not_in_mixed:
+                        result['mixed'][partition] = 0
 
-            return JsonResponse(result, safe=False)  # Return the data as a JSON response
+                return JsonResponse(result, safe=False)  # Return the data as a JSON response
+            else:
+                return JsonResponse(data, safe=False)  # Return the data as a JSON response
         else:
-            return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)
+            _return_response = JsonResponse({'error': 'Failed to fetch data from the SHIM', 
+                                             'Response from Shim': response.json()}, status=response.status_code)
+            print(_return_response)
+            print({'Response from Shim': response.json()})
+            return _return_response

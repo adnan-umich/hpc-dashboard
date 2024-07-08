@@ -21,6 +21,9 @@ def get_time_hh_mm_ss(sec):
         return f"{days:2d}-{hours:02d}:{minutes:02d}:{seconds:02d}"
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
+def get_begin_date(date):
+    return date.split('T')[0]
+
 class Completed:
     def __init__(self):
         return None
@@ -58,15 +61,21 @@ class Completed:
         # Check if the request was successful
         if response.status_code == 200:
             data = response.json()  # Parse the JSON data from the response
-
             # format elapsed time to DD-HH-MM-S
-            for job in data:
-                job['elapsed_time'] = get_time_hh_mm_ss(job['elapsed_time'])
-                if job['state'] == "OUT_OF_MEMORY":
-                    job['state'] = 'OOM'
-                elif "CANCELLED" in job['state']:
-                    job['state'] = 'CANCELLED'
-                    
-            return JsonResponse(data, safe=False)  # Return the data as a JSON response
+            if len(data) > 0:
+                for job in data:
+                    job['elapsed_time'] = get_time_hh_mm_ss(job['elapsed_time'])
+                    job['begin_date'] = get_begin_date(job['starttime']) if job['starttime'] is not None else None
+                    if job['state'] == "OUT_OF_MEMORY":
+                        job['state'] = 'OOM'
+                    elif "CANCELLED" in job['state']:
+                        job['state'] = 'CANCELLED'
+                return JsonResponse(data, safe=False)  # Return the data as a JSON response
+            else:
+                return JsonResponse(data, safe=False)  # Return the data as a JSON response
         else:
-            return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)
+            _return_response = JsonResponse({'error': 'Failed to fetch data from the SHIM', 
+                                             'Response from Shim': response.json()}, status=response.status_code)
+            print(_return_response)
+            print({'Response from Shim': response.json()})
+            return _return_response

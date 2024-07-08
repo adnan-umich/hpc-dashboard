@@ -45,21 +45,26 @@ class MyRadar:
         # Check if the request was successful
         if response.status_code == 200:
             data = response.json()
-
             # New dictionary to store flattened counts
             flattened_counts = {}
-            # Iterate through each key-value pair in the original dictionary
-            for key, value in data.items():
-                # Split the key by commas to get individual partitions
-                partitions = key.split(',')
-                # Iterate through each partition and add the value to the corresponding key in the new dictionary
-                for partition in partitions:
-                    if partition in flattened_counts:
-                        flattened_counts[partition] += value
-                    else:
-                        flattened_counts[partition] = value
+            if len(data) > 0:
+                # Iterate through each key-value pair in the original dictionary
+                for key, value in data.items():
+                    # Split the key by commas to get individual partitions
+                    partitions = key.split(',')
+                    # Iterate through each partition and add the value to the corresponding key in the new dictionary
+                    for partition in partitions:
+                        if partition in flattened_counts:
+                            flattened_counts[partition] += value
+                        else:
+                            flattened_counts[partition] = value
 
-
-            return JsonResponse(flattened_counts, safe=False)  # Return the data as a JSON response
+                return JsonResponse(flattened_counts, safe=False)  # Return the data as a JSON response
+            else:
+                return JsonResponse(data, safe=False)  # Return the data as a JSON response
         else:
-            return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)
+            _return_response = JsonResponse({'error': 'Failed to fetch data from the SHIM', 
+                                             'Response from Shim': response.json()}, status=response.status_code)
+            print(_return_response)
+            print({'Response from Shim': response.json()})
+            return _return_response

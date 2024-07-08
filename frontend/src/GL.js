@@ -53,7 +53,7 @@ function createData(jobid, status, warning, name, user, partition, nodes, cpus, 
   };
 }
 
-function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpus, submittime, endtime, starttime, memory, elapsed_time, workdir, submit) {
+function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpus, submittime, endtime, starttime, memory, elapsed_time, workdir, submit, begin) {
   return {
     id: jobid,
     name,
@@ -69,6 +69,7 @@ function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpu
     Elapsed: elapsed_time,
     workdir: workdir,
     submit: submit,
+    Begin: begin,
   };
 }
 
@@ -174,7 +175,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         await axios.get(`http://localhost:8888/get_completed/greatlakes/${searchValue}/${_starttime}/${_endtime}`)
         .then(response => {
           console.log('Completed jobs data:', response.data); // Debugging log
-          const completedJobs = response.data.map(job => createData_CompletedJob(job.jobid, job.job_name, job.state, job.user, job.partition, job.nodes, job.cpus, job.submittime, job.endtime, job.starttime, job.memory, job.elapsed_time, job.workdir, job.submitline));
+          const completedJobs = response.data.map(job => createData_CompletedJob(job.jobid, job.job_name, job.state, job.user, job.partition, job.nodes, job.cpus, job.submittime, job.endtime, job.starttime, job.memory, job.elapsed_time, job.workdir, job.submitline, job.begin_date));
           setCompleteJobs(completedJobs);
         })
         .catch(error => {
@@ -398,12 +399,13 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'User', headerName: 'User', width: 250 },
+    { field: 'User', headerName: 'User', width: 110 },
     { field: 'Partition', headerName: 'Partition', width: 150 },
     { field: 'Nodes', headerName: 'Node(s)', width: 110 },
     { field: 'CPUS', headerName: 'CPU(s)', width: 110 },
     { field: 'Memory', headerName: 'Memory', width: 110 },
     { field: 'Elapsed', headerName: 'Elapsed Time', width: 110 },
+    { field: 'Begin', headerName: 'Begin Date', width: 110 },
   ];
 
   const lightThemeOptions = {
@@ -448,8 +450,14 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   };
 
   return (
-    <Paper square>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ padding: '1em' }}>
+    <Paper square sx = {{ margin: '2.5% 0px 0px 0px', width: '100%', height: '1000px'}}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ padding: '1em', margin: '1% 0 0 0' }}>
+        <Box sx={{ flexGrow: 1, padding: '1em' }}>
+          <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
+          <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Cluster Usage</Typography>
+            {radar_loading ? <CircularProgress /> : <RadarChart data={radarData} themeOptions={themeOptions} />}
+          </Card>
+        </Box>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
           <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
           <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Cluster Usage</Typography>
@@ -911,8 +919,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     <DataGrid rows={rows} columns={active_columns} onRowClick={handleRowClick} 
                     disableSelectionOnClick
                     disableColumnSelector
-                    disableColumnFilter
-                    disableColumnMenu />
+                    />
                   </Box>
                 )}
               </TabPanel>
@@ -924,8 +931,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     <DataGrid rows={queuedRows} columns={pending_column} onRowClick={handleRowClick_Pending} 
                     disableSelectionOnClick
                     disableColumnSelector
-                    disableColumnFilter
-                    disableColumnMenu />
+                    />
                   </Box>
                 )}
               </TabPanel>
@@ -937,8 +943,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     <DataGrid rows={completedJobs} columns={complete_column} onRowClick={handleRowClick_Completed} 
                     disableSelectionOnClick
                     disableColumnSelector
-                    disableColumnFilter
-                    disableColumnMenu />
+                    />
                   </Box>
                 )}
               </TabPanel>

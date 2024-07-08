@@ -65,18 +65,21 @@ class Tres:
                             d[key] = value
                         dicts.append(d)
                 return dicts
-
-            # Process each item in the data list
-            result = [parse_item(data) for data in data]
-
-            # Flatten the list of lists
-            result = [d for sublist in result for d in sublist]
-
-            unique_dicts = {frozenset(d.items()) for d in result}
-            
-            # Convert the set of frozensets back to a list of dictionaries
-            final_result = [dict(d) for d in unique_dicts]
-                                
-            return JsonResponse(final_result, safe=False)  # Return the data as a JSON response
+            if len(data) > 0:
+                # Process each item in the data list
+                result = [parse_item(data) for data in data]
+                # Flatten the list of lists
+                result = [d for sublist in result for d in sublist]
+                unique_dicts = {frozenset(d.items()) for d in result}
+                # Convert the set of frozensets back to a list of dictionaries
+                final_result = [dict(d) for d in unique_dicts]
+                                    
+                return JsonResponse(final_result, safe=False)  # Return the data as a JSON response
+            else:
+                return JsonResponse(data, safe=False)  # Return the data as a JSON response
         else:
-            return JsonResponse({'error': 'Failed to fetch data from the SHIM'}, status=response.status_code)
+            _return_response = JsonResponse({'error': 'Failed to fetch data from the SHIM', 
+                                             'Response from Shim': response.json()}, status=response.status_code)
+            print(_return_response)
+            print({'Response from Shim': response.json()})
+            return _return_response

@@ -1,4 +1,5 @@
 import React from 'react';
+import Box from '@mui/material/Box';
 import { Radar } from 'react-chartjs-2';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 
@@ -32,7 +33,14 @@ const RadarChart = ({ data, themeOptions }) => {
     }
   };
 
-  return <Radar data={data} options={combinedOptions} />;
+  return (
+      <Radar data={data} options={combinedOptions} 
+      sx={{
+        maxWidth: '600px',
+        maxHeight: '600px',
+      }}
+      />
+  );
 };
 
 export default RadarChart;
