@@ -33,6 +33,7 @@ import RadarChart from './hooks/fetch-radar-data.js';
 import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
+import BudgetDisplay from './hooks/BudgetDisplay'; // Adjust the import path as necessary
 
 
 function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command, start_time) {
@@ -303,7 +304,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'user', headerName: 'User', width: 250 },
+    { field: 'user', headerName: 'User', width: 480 },
     { field: 'partition', headerName: 'Partition', width: 150 },
     { field: 'nodes', headerName: 'Node(s)', width: 110 },
     { field: 'cpus', headerName: 'CPU(s)', width: 110 },
@@ -345,7 +346,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'user', headerName: 'User', width: 250 },
+    { field: 'user', headerName: 'User', width: 480 },
     { field: 'partition', headerName: 'Partition', width: 150 },
     { field: 'nodes', headerName: 'Node(s)', width: 110 },
     { field: 'cpus', headerName: 'CPU(s)', width: 110 },
@@ -399,7 +400,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'User', headerName: 'User', width: 110 },
+    { field: 'User', headerName: 'User', width: 480 },
     { field: 'Partition', headerName: 'Partition', width: 150 },
     { field: 'Nodes', headerName: 'Node(s)', width: 110 },
     { field: 'CPUS', headerName: 'CPU(s)', width: 110 },
@@ -459,9 +460,9 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
           </Card>
         </Box>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
-          <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
-          <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Cluster Usage</Typography>
-            {radar_loading ? <CircularProgress /> : <RadarChart data={radarData} themeOptions={themeOptions} />}
+          <Card variant="outlined" sx={{ boxShadow: 2, padding: '0em' }}>
+          <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Account Balance</Typography>
+            {radar_loading ? <CircularProgress /> : <BudgetDisplay cluster={'greatlakes'} account={searchValue} />}
           </Card>
         </Box>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
@@ -536,7 +537,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                   </Box>
 
                   <Typography variant="subtitle1" gutterBottom>
-                    TRES:
+                    Resources:
                   </Typography>
 
                   <Box display="flex" flexWrap="wrap" justifyContent="center" mb={2}>
@@ -678,7 +679,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                   </Box>
 
                   <Typography variant="subtitle1" gutterBottom>
-                    TRES:
+                    Resources:
                   </Typography>
 
                   <Box display="flex" flexWrap="wrap" justifyContent="center" mb={2}>
@@ -819,7 +820,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                   </Box>
 
                   <Typography variant="subtitle1" gutterBottom>
-                    TRES:
+                    Resources:
                   </Typography>
 
                   <Box display="flex" flexWrap="wrap" justifyContent="center" mb={2}>

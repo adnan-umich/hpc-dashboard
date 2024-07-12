@@ -9,6 +9,7 @@ from .services.completed_jobs import Completed
 from .services.radar import MyRadar
 from .services.get_tres import Tres
 from .services.seff import Seff
+from .services.budget import Budget
 
 
 def get_partition_stats(request, cluster='greatlakes'):
@@ -34,6 +35,9 @@ def get_tres(request, cluster='greatlakes', jobid=None):
 
 def get_seff(request, cluster='greatlakes', jobid=None):
     return Seff.get_seff(cluster=cluster, jobid=jobid)
+
+def get_budget(request, cluster='greatlakes', account=None):
+    return Budget.fetch_budget(cluster=cluster, account=account)
 
 def fetch_root_account_from_shim(request):
     # URL of the external API
