@@ -12,6 +12,13 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 import PopupState, { bindTrigger, bindMenu } from 'material-ui-popup-state';
 import Stack from '@mui/material/Stack';
 import FormControl from '@mui/material/FormControl';
@@ -115,6 +122,7 @@ const App = () => {
   const [time, setTime] = useState('10');
   const [_starttime, setStarttime] = useState('');
   const [_endtime, setEndtime] = useState('');
+  const [showAbout, setShowAbout] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -175,7 +183,7 @@ const App = () => {
     <ToggleColorMode>
       <Stack>
         <Box sx={{ flexGrow: 1 }}>
-          <AppBar sx = {{width: '100vw'}}>
+          <AppBar sx={{ width: '100vw' }}>
             <Toolbar sx={{ backgroundColor: '#00274C' }}>
               <IconButton
                 size="large"
@@ -212,6 +220,15 @@ const App = () => {
                           }}
                         >
                           Lighthouse
+                        </MenuItem>
+                        <Divider sx={{ my: 1 }} />
+                        <MenuItem
+                          onClick={() => {
+                            setShowAbout(true);
+                            popupState.close();
+                          }}
+                        >
+                          About
                         </MenuItem>
                       </Menu>
                     </React.Fragment>
@@ -259,6 +276,35 @@ const App = () => {
           </AppBar>
         </Box>
         {renderComponent()}
+        <Dialog
+          open={showAbout}
+          onClose={() => setShowAbout(false)}
+          aria-labelledby="about-dialog-title"
+          aria-describedby="about-dialog-description"
+        >
+          <DialogTitle id="about-dialog-title">About This App</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="about-dialog-description">
+              <Typography>
+                <strong>Author:</strong> Adnan Hafeez
+              </Typography>
+              <Typography>
+                <strong>Organization:</strong> ARC
+              </Typography>
+              <Typography>
+                <strong>Version:</strong> 1.0.0
+              </Typography>
+              <Typography>
+                <strong>Last Update:</strong> 2024/07/12
+              </Typography>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowAbout(false)} color="primary">
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Stack>
     </ToggleColorMode>
   );

@@ -454,15 +454,15 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
     <Paper square sx = {{ margin: '2.5% 0px 0px 0px', width: '100%', height: '1000px'}}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ padding: '1em', margin: '1% 0 0 0' }}>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
-          <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
-          <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Cluster Usage</Typography>
-            {radar_loading ? <CircularProgress /> : <RadarChart data={radarData} themeOptions={themeOptions} />}
-          </Card>
-        </Box>
-        <Box sx={{ flexGrow: 1, padding: '1em' }}>
           <Card variant="outlined" sx={{ boxShadow: 2, padding: '0em' }}>
           <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Account Balance</Typography>
             {radar_loading ? <CircularProgress /> : <BudgetDisplay cluster={'greatlakes'} account={searchValue} />}
+          </Card>
+        </Box>
+        <Box sx={{ flexGrow: 1, padding: '1em' }}>
+          <Card variant="outlined" sx={{ boxShadow: 2, padding: '1em' }}>
+          <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold'}}>Cluster Usage</Typography>
+            {radar_loading ? <CircularProgress /> : <RadarChart data={radarData} themeOptions={themeOptions} />}
           </Card>
         </Box>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>

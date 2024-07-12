@@ -52,7 +52,7 @@ class Budget:
                 else:
                     return JsonResponse("Budget Not Available", safe=False)
             else:
-                return JsonResponse(data, safe=False)  # Return the data as a JSON response
+                return JsonResponse("Budget Not Available", safe=False) # Return the data as a JSON response
         else:
             _return_response = JsonResponse({'error': 'Failed to fetch data from the SHIM', 
                                              'Response from Shim': response.json()}, status=response.status_code)

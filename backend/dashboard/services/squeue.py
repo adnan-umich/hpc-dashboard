@@ -37,7 +37,7 @@ class Squeue:
             data = response.json()  # Parse the JSON data from the response
             if len(data) > 0:
                 data_queued = [x for x in data if (x['state'] != "RUNNING" and x['state'] != "COMPLETING")]
-                return JsonResponse(data, safe=False)  # Return the data as a JSON response
+                return JsonResponse(data_queued, safe=False)  # Return the data as a JSON response
             else:
                 return JsonResponse(data, safe=False)  # Return the data as a JSON response
         else:
