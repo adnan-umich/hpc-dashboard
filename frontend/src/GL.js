@@ -452,7 +452,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   };
 
   return (
-    <Paper square sx = {{ margin: '4% 0px 0px 0px', width: '100%', height: '1000px'}}>
+    <Paper square sx = {{ margin: '4em 0px 0px 0px', width: '100%', height: '1000px'}}>
       <Toolbar sx={{ backgroundColor: theme.palette.mode === 'light' ? 'rgba(233, 233, 233, 1)' : 'rgba(48, 48, 48, 1)' }}>
         <Typography variant="h5" component="h2">
           Account Overview
