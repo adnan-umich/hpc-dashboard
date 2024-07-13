@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useContext, useEffect } from 'react';
 import { Container, createTheme, ThemeProvider, useTheme } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import InputBase from '@mui/material/InputBase';
@@ -185,56 +186,57 @@ const App = () => {
         <Box sx={{ flexGrow: 1 }}>
           <AppBar sx={{ width: '100vw' }}>
             <Toolbar sx={{ backgroundColor: '#00274C' }}>
-              <IconButton
-                size="large"
-                edge="start"
-                color="inherit"
-                aria-label="open drawer"
-                sx={{ mr: 2 }}
-              >
-                <PopupState variant="popover" popupId="demo-popup-menu">
-                  {(popupState) => (
-                    <React.Fragment>
-                      <MenuIcon variant="contained" {...bindTrigger(popupState)} />
-                      <Menu {...bindMenu(popupState)}>
-                        <MenuItem
-                          onClick={() => {
-                            setSelectedComponent('Great Lakes');
-                            popupState.close();
-                          }}
-                        >
-                          Great Lakes
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            setSelectedComponent('Armis2');
-                            popupState.close();
-                          }}
-                        >
-                          Armis2
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            setSelectedComponent('Lighthouse');
-                            popupState.close();
-                          }}
-                        >
-                          Lighthouse
-                        </MenuItem>
-                        <Divider sx={{ my: 1 }} />
-                        <MenuItem
-                          onClick={() => {
-                            setShowAbout(true);
-                            popupState.close();
-                          }}
-                        >
-                          About
-                        </MenuItem>
-                      </Menu>
-                    </React.Fragment>
-                  )}
-                </PopupState>
-              </IconButton>
+              <PopupState variant="popover" popupId="demo-popup-menu">
+                {(popupState) => (
+                  <React.Fragment>
+                    <IconButton
+                      size="large"
+                      edge="start"
+                      color="inherit"
+                      aria-label="open drawer"
+                      sx={{ mr: 2 }}
+                      {...bindTrigger(popupState)}
+                    >
+                      <MenuIcon />
+                    </IconButton>
+                    <Menu {...bindMenu(popupState)}>
+                      <MenuItem
+                        onClick={() => {
+                          setSelectedComponent('Great Lakes');
+                          popupState.close();
+                        }}
+                      >
+                        Great Lakes
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          setSelectedComponent('Armis2');
+                          popupState.close();
+                        }}
+                      >
+                        Armis2
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          setSelectedComponent('Lighthouse');
+                          popupState.close();
+                        }}
+                      >
+                        Lighthouse
+                      </MenuItem>
+                      <Divider sx={{ my: 1 }} />
+                      <MenuItem
+                        onClick={() => {
+                          setShowAbout(true);
+                          popupState.close();
+                        }}
+                      >
+                        About
+                      </MenuItem>
+                    </Menu>
+                  </React.Fragment>
+                )}
+              </PopupState>
               <Typography
                 variant="h6"
                 noWrap
@@ -282,14 +284,15 @@ const App = () => {
           aria-labelledby="about-dialog-title"
           aria-describedby="about-dialog-description"
         >
-          <DialogTitle id="about-dialog-title">About This App</DialogTitle>
+          <DialogTitle id="about-dialog-title"><InfoOutlinedIcon sx = {{margin: "0em 1em -0.3em 0em", color: '#2F65A7'}} fontSize='large'></InfoOutlinedIcon>
+          HPC Dashboard</DialogTitle>
           <DialogContent>
             <DialogContentText id="about-dialog-description">
               <Typography>
-                <strong>Author:</strong> Adnan Hafeez
+                <strong>Developer:</strong> Adnan Hafeez
               </Typography>
               <Typography>
-                <strong>Organization:</strong> ARC
+                <strong>Organization:</strong> ARC (Advanced Research Computing) - University of Michigan
               </Typography>
               <Typography>
                 <strong>Version:</strong> 1.0.0

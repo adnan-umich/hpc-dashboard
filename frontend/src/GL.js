@@ -3,6 +3,7 @@ import axios from 'axios';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
+import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
@@ -451,7 +452,12 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   };
 
   return (
-    <Paper square sx = {{ margin: '2.5% 0px 0px 0px', width: '100%', height: '1000px'}}>
+    <Paper square sx = {{ margin: '4% 0px 0px 0px', width: '100%', height: '1000px'}}>
+      <Toolbar sx={{ backgroundColor: theme.palette.mode === 'light' ? 'rgba(233, 233, 233, 1)' : 'rgba(48, 48, 48, 1)' }}>
+        <Typography variant="h5" component="h2">
+          Account Overview
+        </Typography>
+      </Toolbar>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ padding: '1em', margin: '1% 0 0 0' }}>
         <Box sx={{ flexGrow: 1, padding: '1em' }}>
           <Card variant="outlined" sx={{ boxShadow: 2, padding: '0em' }}>
