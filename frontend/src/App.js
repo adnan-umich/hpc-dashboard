@@ -151,12 +151,21 @@ const App = () => {
     setStarttime(start);
   }, [time]); // Empty dependency array to ensure it only runs once on mount  
 
+  useEffect(() => {
+    const cachedSearch = localStorage.getItem('searchValue');
+    if (cachedSearch) {
+      setSearchValue(cachedSearch);
+      setSubmittedSearch(cachedSearch);
+    }
+  }, []);
+
   const handleTimeChange = (event) => {
     setTime(event.target.value);
   };
 
   const handleSearchChange = (event) => {
     setSearchValue(event.target.value);
+    localStorage.setItem('searchValue', event.target.value);
   };
 
   const handleSearchSubmit = (event) => {

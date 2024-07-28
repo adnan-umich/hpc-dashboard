@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, Card, Container, Typography, CircularProgress } from '@mui/material';
+import { Box, Container, Typography, CircularProgress } from '@mui/material';
 
 const fetchBudget = async (cluster, account) => {
   try {
@@ -25,7 +25,7 @@ const BudgetDisplay = ({ cluster, account }) => {
 
   if (budgetData === null) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <CircularProgress />
       </Box>
     );
