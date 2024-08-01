@@ -51,7 +51,9 @@ const PartitionStats = ({ clusterName }) => {
 
   return (
     <Stack>
-    <Typography sx = {{margin: '1em 1em 0em 2em', padding: '0.1em', fontWeight: 'bold'}}>Node Availability</Typography>
+    <Typography variant="h6" sx={{ marginBottom: '1em', fontWeight: 'bold' }}>
+    Node Availability
+    </Typography>
     <ResponsiveContainer width={650} height={350}>
       <BarChart
         data={data}

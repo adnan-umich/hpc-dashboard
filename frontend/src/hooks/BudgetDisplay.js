@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Box, Container, Typography, CircularProgress } from '@mui/material';
 
@@ -14,13 +14,18 @@ const fetchBudget = async (cluster, account) => {
 
 const BudgetDisplay = ({ cluster, account }) => {
   const [budgetData, setBudgetData] = useState(null);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    const getBudget = async () => {
-      const data = await fetchBudget(cluster, account);
-      setBudgetData(data);
-    };
-    getBudget();
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      const getBudget = async () => {
+        const data = await fetchBudget(cluster, account);
+        setBudgetData(data);
+      };
+      getBudget();
+    }
   }, [cluster, account]);
 
   if (budgetData === null) {

@@ -1,33 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import Divider from '@mui/material/Divider';
-import { Accordion, AccordionSummary, AccordionDetails, Grid } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Stack from '@mui/material/Stack';
-import Tab from '@mui/material/Tab';
-import TabContext from '@mui/lab/TabContext';
-import TabList from '@mui/lab/TabList';
-import TabPanel from '@mui/lab/TabPanel';
+import { Accordion, AccordionSummary, AccordionDetails, Alert, Box, Card, CardContent, CircularProgress, Dialog, DialogContent, Divider, Grid, Paper, Stack, Tab, TextField, Toolbar, Typography, useTheme } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import WarningIcon from '@mui/icons-material/Warning';
-import ErrorIcon from '@mui/icons-material/Error';
-import PendingIcon from '@mui/icons-material/Pending';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import TimerOffIcon from '@mui/icons-material/TimerOff';
-import SimCardAlertIcon from '@mui/icons-material/SimCardAlert';
-import Alert from '@mui/material/Alert';
-import Dialog from '@mui/material/Dialog';
-import DialogContent from '@mui/material/DialogContent';
+import { TabContext, TabList, TabPanel } from '@mui/lab';
+import { ExpandMore as ExpandMoreIcon, Warning as WarningIcon, Error as ErrorIcon, Pending as PendingIcon, Autorenew as AutorenewIcon, TimerOff as TimerOffIcon, SimCardAlert as SimCardAlertIcon } from '@mui/icons-material';
 import Zoom from '@mui/material/Zoom';
-import { useTheme } from '@mui/material/styles';
 
 // HPC Hooks
 import PartitionStats from './hooks/fetch-partition-data.js';
@@ -36,7 +13,6 @@ import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the impo
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
 import BudgetDisplay from './hooks/BudgetDisplay'; // Adjust the import path as necessary
-
 
 function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command, start_time) {
   return {
@@ -140,13 +116,17 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   // Fetch data on mount
   useEffect(() => {
     setLoading_active(true);
+    setLoading_radar(true); // Start loading state for radar data
+    setLoading_pending(true);
+    setLoading_complete(true);
+
     const fetchData = async () => {
       try {
          await axios.get(`http://localhost:8888/get_active/greatlakes/${searchValue}/`)
         .then(response => {
           console.log('Active jobs data:', response.data); // Debugging log 
           // jobid, status, warning, name, user, partition, nodes, cpus, timeleft, cost, details, memory, reason, command
-          const activeJobs = response.data.map(job => createData(job.jobid, job.state, true, job.name, job.user, job.partition, job.nodes, job.cpus, job.time_left, job.max_memory, job.reason, job.command));
+          const activeJobs = response.data.map(job => createData(job.jobid, job.state, true, job.name, job.user, job.partition, job.nodes, job.cpus, job.time_left, job.max_memory, job.reason, job.command, job.start_time));
           setRows(activeJobs);
         })
         .catch(error => {
@@ -157,7 +137,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       } finally {
         setLoading_active(false);
       }
-      setLoading_pending(true);
       try {
         await axios.get(`http://localhost:8888/get_squeue/greatlakes/${searchValue}/`)
         .then(response => {
@@ -173,7 +152,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       } finally {
         setLoading_pending(false);
       }
-      setLoading_complete(true);
       try {
         await axios.get(`http://localhost:8888/get_completed/greatlakes/${searchValue}/${_starttime}/${_endtime}`)
         .then(response => {
@@ -189,7 +167,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       } finally {
         setLoading_complete(false);
       }
-      setLoading_radar(true);
     try {
       // Fetch radar stats data
       const radarResponse = await axios.get(`http://localhost:8888/get_radar/greatlakes/${searchValue}/${_starttime}/${_endtime}`);
@@ -306,7 +283,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'user', headerName: 'User', width: 480 },
+    { field: 'user', headerName: 'User', width: 90 },
+    { field: 'name', headerName: 'Job Name', width: 480 },
     { field: 'partition', headerName: 'Partition', width: 150 },
     { field: 'nodes', headerName: 'Node(s)', width: 110 },
     { field: 'cpus', headerName: 'CPU(s)', width: 110 },
@@ -348,7 +326,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'user', headerName: 'User', width: 480 },
+    { field: 'user', headerName: 'User', width: 90 },
+    { field: 'name', headerName: 'Job Name', width: 480 },
     { field: 'partition', headerName: 'Partition', width: 150 },
     { field: 'nodes', headerName: 'Node(s)', width: 110 },
     { field: 'cpus', headerName: 'CPU(s)', width: 110 },
@@ -402,7 +381,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         );
       }
     },
-    { field: 'User', headerName: 'User', width: 480 },
+    { field: 'User', headerName: 'User', width: 110 },
+    { field: 'name', headerName: 'Job Name', width: 330 },
     { field: 'Partition', headerName: 'Partition', width: 150 },
     { field: 'Nodes', headerName: 'Node(s)', width: 110 },
     { field: 'CPUS', headerName: 'CPU(s)', width: 110 },
@@ -464,6 +444,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         return memory / 1024;
       case 'GiB':
         return memory;
+      case 'TiB':
+          return memory * 1024;
       default:
         throw new Error(`Unknown unit: ${unit}`);
     }
@@ -471,7 +453,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   
   const calculateTotalMemory = (rows) => {
     const totalMemory = rows.reduce((total, row) => {
-      const match = row.memory.match(/(\d+)\s*(KiB|MiB|GiB)/);
+      const match = row.memory.match(/(\d+)\s*(KiB|MiB|GiB|TiB)/);
       if (match) {
         const memory = parseInt(match[1], 10);
         const unit = match[2];
@@ -489,6 +471,14 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
     height: '300px', // Adjust the height as needed
     padding: '1em',
   };
+  
+  const Footer = () => (
+    <Box sx={{ p: 2, backgroundColor: '#00274C', color: 'white', textAlign: 'center' }}>
+      <Typography variant="body2">
+        &copy; {new Date().getFullYear()} HPC Dashboard. All rights reserved.
+      </Typography>
+    </Box>
+  );
   
   return (
     <Paper square sx = {{ margin: '4em 0px 0px 0px', width: '100%', height: '1000px'}}>
@@ -516,29 +506,30 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         </Stack>
       )}
         <Stack direction={{ xs: 'column', md: 'row' }} sx={{ padding: '1em', margin: '1% 0 0 0' }}>
-          <Grid container spacing={2} justifyContent="center">
-            <Grid item>
-              <Box sx={fixedBoxStyles}>
-                <Card variant="outlined" sx={{ boxShadow: 2 }}>
-                  <Typography sx={{ margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold' }}>Account Balance</Typography>
-                  {radar_loading ? <CircularProgress /> : <BudgetDisplay cluster={'greatlakes'} account={searchValue} />}
-                </Card>
-              </Box>
-            </Grid>
-            <Grid item>
-              <Box sx={fixedBoxStyles}>
-                <Card variant="outlined" sx={{ boxShadow: 2 }}>
-                  <Typography sx={{ margin: '1em 1em 0em 2em', padding: '0em 0.1em', fontWeight: 'bold' }}>Cluster Usage</Typography>
-                  {radar_loading ? <CircularProgress /> : <RadarChart data={radarData} themeOptions={themeOptions} />}
-                </Card>
-              </Box>
-            </Grid>
-            <Grid item>
-                <Card variant="outlined" sx={{ boxShadow: 2 }}>
-                  <PartitionStats clusterName={'greatlakes'} />
-                </Card>
-            </Grid>
+        <Grid container spacing={2} justifyContent="center">
+          <Grid item>
+            <Card variant="outlined" sx={{ boxShadow: 3, padding: '1em' }}>
+              <Typography variant="h6" sx={{ marginBottom: '1em', fontWeight: 'bold' }}>
+                Account Balance
+              </Typography>
+              <BudgetDisplay cluster={'greatlakes'} account={searchValue} />
+            </Card>
           </Grid>
+          <Grid item>
+            <Card variant="outlined" sx={{ boxShadow: 3, padding: '1em' }}>
+              <Typography variant="h6" sx={{ marginBottom: '1em', fontWeight: 'bold' }}>
+                Cluster Usage
+              </Typography>
+              {radar_loading ? <center><CircularProgress /></center> : <RadarChart data={radarData} themeOptions={themeOptions} />}
+            </Card>
+          </Grid>
+          <Grid item>
+            <Card variant="outlined" sx={{ boxShadow: 3, padding: '1em' }}>
+              <PartitionStats clusterName={'greatlakes'} />
+            </Card>
+          </Grid>
+        </Grid>
+
           <Dialog open={open} onClose={handleClose} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
             <DialogContent>
               {selectedRow && (
@@ -550,7 +541,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     <Box mb={2}>
                       {[
                         { label: 'ID', value: selectedRow.id },
-                        { label: 'Name', value: selectedRow.name },
+                        { label: 'Job Name', value: selectedRow.name },
                         { label: 'Status', value: selectedRow.status },
                         { label: 'User', value: selectedRow.user },
                       ].map((detail, index) => (
@@ -587,6 +578,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     </Typography>
                     <Box mb={2}>
                       {[
+                        { label: 'Start Time', value: selectedRow.start_time},
                         { label: 'Time Left', value: selectedRow.timeleft },
                         { label: 'Script', value: selectedRow.command },
                       ].map((slurmDetail, index) => (
@@ -671,7 +663,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             </DialogContent>
           </Dialog>
 
-          <Dialog open={open_pending_box} onClose={handleClose_Pending} TransitionComponent={Zoom} maxWidth="md" fullWidth>
+          <Dialog open={open_pending_box} onClose={handleClose_Pending} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
             <DialogContent>
               {selectedRow && (
                 <Box>
@@ -682,7 +674,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     <Box mb={2}>
                       {[
                         { label: 'ID', value: selectedRow.id },
-                        { label: 'Name', value: selectedRow.name },
+                        { label: 'Job Name', value: selectedRow.name },
                         { label: 'Reason', value: selectedRow.reason },
                         { label: 'Status', value: selectedRow.status },
                         { label: 'User', value: selectedRow.user },
@@ -720,7 +712,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     </Typography>
                     <Box mb={2}>
                       {[
-                        { label: 'Time Left', value: selectedRow.timeleft },
+                        { label: 'Alloc Time', value: selectedRow.timeleft },
+                        { label: 'Start Time', value: selectedRow.start_time },
                         { label: 'Script', value: selectedRow.command },
                       ].map((slurmDetail, index) => (
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
@@ -804,7 +797,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             </DialogContent>
           </Dialog>
 
-          <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom} maxWidth="md" fullWidth>
+          <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
             <DialogContent>
               {selectedRow && (
                 <Box>
@@ -815,9 +808,9 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     <Box mb={2}>
                       {[
                         { label: 'ID', value: selectedRow.id },
-                        { label: 'Name', value: selectedRow.name },
-                        { label: 'Status', value: selectedRow.status },
-                        { label: 'User', value: selectedRow.user },
+                        { label: 'Job Name', value: selectedRow.name },
+                        { label: 'Status', value: selectedRow.State },
+                        { label: 'User', value: selectedRow.User },
                       ].map((detail, index) => (
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
                           <Typography variant="body1">{detail.label}:</Typography>
@@ -833,10 +826,10 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     </Typography>
                     <Box mb={2}>
                       {[
-                        { label: 'Partition', value: selectedRow.partition },
-                        { label: 'Nodes', value: selectedRow.nodes },
-                        { label: 'CPUs', value: selectedRow.cpus },
-                        { label: 'Memory', value: selectedRow.memory },
+                        { label: 'Partition', value: selectedRow.Partition },
+                        { label: 'Nodes', value: selectedRow.Nodes },
+                        { label: 'CPUs', value: selectedRow.CPUS },
+                        { label: 'Memory', value: selectedRow.Memory },
                       ].map((resource, index) => (
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
                           <Typography variant="body1">{resource.label}:</Typography>
@@ -852,8 +845,9 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                     </Typography>
                     <Box mb={2}>
                       {[
-                        { label: 'Time Left', value: selectedRow.timeleft },
-                        { label: 'Script', value: selectedRow.command },
+                        { label: 'Begin Date', value: selectedRow.Begin },
+                        { label: 'Elapsed Time', value: selectedRow.Elapsed },
+                        { label: 'Script', value: selectedRow.submit },
                       ].map((slurmDetail, index) => (
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
                           <Typography variant="body1">{slurmDetail.label}:</Typography>
@@ -951,7 +945,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
               </Box>
               <TabPanel value="1">
                 {active_loading ? (
-                  <CircularProgress />
+                  <center><CircularProgress /></center>
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
                     <DataGrid rows={rows} columns={active_columns} onRowClick={handleRowClick} 
@@ -963,7 +957,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
               </TabPanel>
               <TabPanel value="2">
                 {pending_loading ? (
-                  <CircularProgress />
+                 <center><CircularProgress /></center>
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
                     <DataGrid rows={queuedRows} columns={pending_column} onRowClick={handleRowClick_Pending} 
@@ -975,7 +969,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
               </TabPanel>
               <TabPanel value="3">
                 {complete_loading ? (
-                  <CircularProgress />
+                  <center><CircularProgress /></center>
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
                     <DataGrid rows={completedJobs} columns={complete_column} onRowClick={handleRowClick_Completed} 
@@ -988,6 +982,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             </TabContext>
           </CardContent>
         </Card>
+        <Footer />
     </Paper>
   );
 }
