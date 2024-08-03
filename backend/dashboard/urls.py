@@ -31,5 +31,5 @@ urlpatterns = [
     path('get_tres/<str:cluster>/<jobid>', views.get_tres, name='get_tres'),
     path('get_seff/<str:cluster>/<jobid>', views.get_seff, name='get_seff'),
     path('get_budget/<str:cluster>/<account>', views.get_budget, name='get_budget'),
-
+    
 ]

@@ -11,7 +11,6 @@ from .services.get_tres import Tres
 from .services.seff import Seff
 from .services.budget import Budget
 
-
 def get_partition_stats(request, cluster='greatlakes'):
     return Partitions.fetch_partition_stats(cluster)
 
