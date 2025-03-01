@@ -10,10 +10,21 @@ import { CSVLink } from 'react-csv';
 // HPC Hooks
 import PartitionStats from './hooks/fetch-partition-data.js';
 import RadarChart from './hooks/fetch-radar-data.js';
-import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
+import { fetchJobStats } from './hooks/my-job-statistics.js'; 
+import { fetchJobScript } from './hooks/fetch-job-script.js'; 
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
-import BudgetDisplay from './hooks/BudgetDisplay'; // Adjust the import path as necessary
+import BudgetDisplay from './hooks/BudgetDisplay';
+
+// Dec 3
+import AddIcon from "@mui/icons-material/Add";
+import {
+  IconButton,
+  MenuItem,
+  Select,
+} from "@mui/material";
+import FilterListIcon from "@mui/icons-material/FilterList";
+// Dec 3 End
 
 function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command, start_time) {
   return {
@@ -37,7 +48,7 @@ function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpu
   return {
     id: jobid,
     name,
-    State: state,
+    Status: state,
     User: user,
     Partition: partition,
     Nodes: nodes,
@@ -112,6 +123,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const [jobStats, setJobStats] = useState(''); // New state for job stats
   const [jobTRES, setJobTRES] = useState(''); 
   const [jobSEFF, setJobSEFF] = useState(''); 
+  const [jobSCRIPT, setjobSCRIPT] = useState(''); 
   const csvLinkRef = useRef();
 
 
@@ -240,6 +252,9 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
     const seff = await fetchSeff('greatlakes', params.row.id);
     setJobSEFF(seff);
 
+    const script_txt = await fetchJobScript('slurm_greatlakes', params.row.id);
+    setjobSCRIPT(script_txt);
+
   };
 
   const handleClose_Completed = () => {
@@ -340,7 +355,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const complete_column = [
     { field: 'id', headerName: 'ID', width: 90 },
     { 
-      field: 'State', 
+      field: 'Status', 
       headerName: 'Status', 
       width: 150,
       renderCell: (params) => {
@@ -358,6 +373,11 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             style = "failed"
             status_msg = params.value;
             break;
+          case 'NODE_FAIL':
+            icon = <ErrorIcon style={{ color: '#9A3324' }} />;
+            style = "failed"
+            status_msg = "NODE FAIL";
+            break;
           case 'CANCELLED':
             icon = null;
             style = "failed"
@@ -374,7 +394,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
             status_msg = params.value;
             break;  
           default:
-              icon = null;
+              icon = "None";
         }
         return (
           <Box display="flex" alignItems="center">
@@ -516,6 +536,42 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       marginLeft: '8px',
     },
   });
+
+  // Dec 3
+  const [filters, setFilters] = useState([]);
+  const [selectedColumn, setSelectedColumn] = useState("");
+  const [filterValue, setFilterValue] = useState("");
+
+  const columns = [
+    { label: "Status", key: "State" },
+    { label: "User", key: "User" },
+    { label: "Partition", key: "Partition" },
+  ];
+
+  // Add a filter
+  const addFilter = () => {
+    if (selectedColumn && filterValue) {
+      setFilters((prev) => [
+        ...prev,
+        { column: selectedColumn, value: filterValue.toLowerCase()},
+      ]);
+      setSelectedColumn("");
+      setFilterValue("");
+    }
+  };
+
+  // Remove a filter
+  const removeFilter = (index) => {
+    setFilters((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Apply filters to the job list
+  const filteredJobs = completedJobs.filter((job) =>
+    filters.every((filter) =>
+      String(job[filter.column]).toLowerCase().includes(filter.value.toLowerCase())
+    )
+  );
+  // Dec 3 End
 
 
   return (
@@ -847,7 +903,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                       {[
                         { label: 'ID', value: selectedRow.id },
                         { label: 'Job Name', value: selectedRow.name },
-                        { label: 'Status', value: selectedRow.State },
+                        { label: 'Status', value: selectedRow.Status },
                         { label: 'User', value: selectedRow.User },
                       ].map((detail, index) => (
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} key={index}>
@@ -930,6 +986,23 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                       )}
                     </Box>
                   </Box>
+                  <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Typography variant="subtitle1">Job Script</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <TextField
+                        value={jobSCRIPT}
+                        multiline
+                        fullWidth
+                        InputProps={{
+                          readOnly: true,
+                        }}
+                        variant="outlined"
+                        sx={{ borderRadius: '4px' }}
+                      />
+                    </AccordionDetails>
+                  </Accordion>
                   <Accordion expanded={accordionExpanded} onChange={toggleAccordion}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                       <Typography variant="subtitle1">My Job Statistics</Typography>
@@ -1026,11 +1099,69 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                 {complete_loading ? (
                   <center><CircularProgress /></center>
                 ) : (
-                  <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
-                    <MinimalisticButton variant="contained" onClick={handleDownload} startIcon={<Download />}> Download CSV </MinimalisticButton>
-                    <DataGrid rows={completedJobs} columns={complete_column} onRowClick={handleRowClick_Completed} 
-                    disableSelectionOnClick
-                    disableColumnSelector
+                  <Box className="data-grid-container" sx={{ height: 620, width: '100%' }}>
+                      <Box display="flex" alignItems="center" ml={2} flexWrap="wrap" gap={1}>
+                      <MinimalisticButton variant="contained" onClick={handleDownload} startIcon={<Download />}> Download CSV </MinimalisticButton>
+                        <IconButton color="primary">
+                          | <FilterListIcon />
+                        </IconButton>
+                          {filters.map((filter, index) => (
+                            <Chip
+                              key={index}
+                              label={`${filter.column}: ${filter.value}`}
+                              onDelete={() => removeFilter(index)}
+                              sx={{
+                                bgcolor: "#b0bec5",
+                                color: "white",
+                                "& .MuiChip-deleteIcon": { color: "white" },
+                              }}
+                            />
+                          ))}
+                          <Select
+                            value={selectedColumn}
+                            onChange={(e) => setSelectedColumn(e.target.value)}
+                            displayEmpty
+                            size="small"
+                            sx={{ minWidth: 150, mr: 1 }}
+                          >
+                            <MenuItem value="" disabled>
+                              Select Column
+                            </MenuItem>
+                            {columns.map((col) => (
+                              <MenuItem key={col.key} value={col.label}>
+                                {col.label}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          <input
+                            type="text"
+                            placeholder="Enter Value"
+                            value={filterValue}
+                            onChange={(e) => setFilterValue(e.target.value)}
+                            style={{
+                              height: "32px",
+                              padding: "0 8px",
+                              border: "1px solid #ccc",
+                              borderRadius: "4px",
+                              marginRight: "8px",
+                            }}
+                          />
+                          <Button
+                            variant="outlined"
+                            startIcon={<AddIcon />}
+                            onClick={addFilter}
+                            size="small"
+                          >
+                            Add Filter
+                          </Button>
+                        </Box>
+                    {/* DataGrid with Filtered Jobs */}
+                    <DataGrid
+                      rows={filteredJobs}
+                      columns={complete_column}
+                      onRowClick={handleRowClick_Completed}
+                      disableSelectionOnClick
+                      disableColumnSelector
                     />
                       <CSVLink
                         data={convertToCSV(completedJobs)}

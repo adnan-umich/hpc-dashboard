@@ -84,3 +84,7 @@
 .job-table-head th {
   font-weight: bold;
 }
+
+.app-toolbar {
+  background-color: #00274C;
+}

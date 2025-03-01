@@ -14,19 +14,15 @@ const fetchBudget = async (cluster, account) => {
 
 const BudgetDisplay = ({ cluster, account }) => {
   const [budgetData, setBudgetData] = useState(null);
-  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-    } else {
-      const getBudget = async () => {
-        const data = await fetchBudget(cluster, account);
-        setBudgetData(data);
-      };
-      getBudget();
-    }
+    const getBudget = async () => {
+      const data = await fetchBudget(cluster, account);
+      setBudgetData(data);
+    };
+    getBudget();
   }, [cluster, account]);
+  
 
   if (budgetData === null) {
     return (

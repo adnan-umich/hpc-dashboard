@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useContext, useEffect } from 'react';
+import React, { useState, useMemo, useContext, useEffect, useRef} from 'react';
 import { createTheme, ThemeProvider, useTheme } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { styled, alpha } from '@mui/material/styles';
@@ -16,8 +16,6 @@ import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import PopupState, { bindTrigger, bindMenu } from 'material-ui-popup-state';
@@ -30,6 +28,7 @@ import { format, subDays, subMonths } from 'date-fns';
 import GL from './GL';
 import LH from './LH';
 import A2 from './A2';
+import About from "./hooks/about";
 import './App.css';
 
 const Search = styled('div')(({ theme }) => ({
@@ -135,13 +134,16 @@ const App = () => {
       case 10: // Today
         start = format(now, 'yyyy-MM-dd');
         break;
-      case 20: // Last 30 Days
+      case 20: // Last 5 Days
+        start = format(subDays(now, 5), 'yyyy-MM-dd');
+        break;
+      case 30: // Last 30 Days
         start = format(subDays(now, 30), 'yyyy-MM-dd');
         break;
-      case 30: // Last 3 Months
+      case 40: // Last 3 Months
         start = format(subMonths(now, 3), 'yyyy-MM-dd');
         break;
-      case 40: // Last 6 Months
+      case 50: // Last 6 Months
         start = format(subMonths(now, 6), 'yyyy-MM-dd');
         break;
       default:
@@ -194,7 +196,7 @@ const App = () => {
       <Stack>
         <Box sx={{ flexGrow: 1 }}>
           <AppBar sx={{ width: '100vw' }}>
-            <Toolbar sx={{ backgroundColor: '#00274C' }}>
+            <Toolbar className="app-toolbar">
               <PopupState variant="popover" popupId="demo-popup-menu">
                 {(popupState) => (
                   <React.Fragment>
@@ -263,9 +265,10 @@ const App = () => {
                     sx={{ color: 'white', borderColor: 'white' }}
                   >
                     <MenuItem value={10}>Today</MenuItem>
-                    <MenuItem value={20}>Last 30 Days</MenuItem>
-                    <MenuItem value={30}>Last 3 Months</MenuItem>
-                    <MenuItem value={40}>Last 6 Months</MenuItem>
+                    <MenuItem value={20}>Last 5 Days</MenuItem>
+                    <MenuItem value={30}>Last 30 Days</MenuItem>
+                    <MenuItem value={40}>Last 3 Months</MenuItem>
+                    <MenuItem value={50}>Last 6 Months</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -295,22 +298,7 @@ const App = () => {
         >
           <DialogTitle id="about-dialog-title"><InfoOutlinedIcon sx = {{margin: "0em 1em -0.3em 0em", color: '#2F65A7'}} fontSize='large'></InfoOutlinedIcon>
           HPC Dashboard</DialogTitle>
-          <DialogContent>
-            <DialogContentText id="about-dialog-description">
-              <Typography>
-                <strong>Developer:</strong> Adnan Hafeez
-              </Typography>
-              <Typography>
-                <strong>Organization:</strong> ARC (Advanced Research Computing) - University of Michigan
-              </Typography>
-              <Typography>
-                <strong>Version:</strong> 1.0.0
-              </Typography>
-              <Typography>
-                <strong>Last Update:</strong> 2024/07/12
-              </Typography>
-            </DialogContentText>
-          </DialogContent>
+          <About />
           <DialogActions>
             <Button onClick={() => setShowAbout(false)} color="primary">
               Close

@@ -7,8 +7,6 @@ import { ExpandMore as ExpandMoreIcon, Warning as WarningIcon, Error as ErrorIco
 import Zoom from '@mui/material/Zoom';
 
 // HPC Hooks
-import PartitionStats from './hooks/fetch-partition-data.js';
-import RadarChart from './hooks/fetch-radar-data.js';
 import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
@@ -51,54 +49,12 @@ function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpu
   };
 }
 
-function createRadarData(partitionData, normalize = false, useLog = false) {
-  const defaultPartitions = {
-    standard: 0,
-    build: 0,
-    viz: 0,
-    gpu: 0,
-    spgpu: 0,
-    spgpu2: 0,
-    gpu_mig40: 0,
-    debug: 0,
-    largemem: 0,
-  };
-
-  const mergedData = { ...defaultPartitions, ...partitionData };
-  const labels = Object.keys(mergedData);
-  let data = Object.values(mergedData);
-
-  if (useLog) {
-    data = data.map(value => value > 0 ? Math.log(value) : 0);
-  } else if (normalize) {
-    const max = Math.max(...data);
-    data = data.map(value => value / max);
-  }
-
-  return {
-    labels,
-    datasets: [
-      {
-        label: 'Partitions',
-        backgroundColor: 'rgba(129,203,159,0.2)',
-        borderColor: 'rgba(129,203,159,1)',
-        pointBackgroundColor: 'rgba(129,203,159,1)',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(179,181,198,1)',
-        data,
-      },
-    ],
-  };
-}
-
 export default function CollapsibleTable({ searchValue, _starttime, _endtime }) {
   const theme = useTheme();
   const [value, setValue] = useState('1');
   const [rows, setRows] = useState([]);
   const [queuedRows, setQueuedRows] = useState([]);
   const [completedJobs, setCompleteJobs] = useState([]);
-  const [radarData, setRadarData] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [open, setOpen] = useState(false);
   const [open_pending_box, setOpen_PendingBox] = useState(false);
@@ -106,7 +62,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const [active_loading, setLoading_active] = useState(true);
   const [pending_loading, setLoading_pending] = useState(true);
   const [complete_loading, setLoading_complete] = useState(true);
-  const [radar_loading, setLoading_radar] = useState(true);
   const [jobStats, setJobStats] = useState(''); // New state for job stats
   const [jobTRES, setJobTRES] = useState(''); 
   const [jobSEFF, setJobSEFF] = useState(''); 
@@ -115,7 +70,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   // Fetch data on mount
   useEffect(() => {
     setLoading_active(true);
-    setLoading_radar(true); // Start loading state for radar data
     setLoading_pending(true);
     setLoading_complete(true);
 
@@ -166,16 +120,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       } finally {
         setLoading_complete(false);
       }
-    try {
-      // Fetch radar stats data
-      const radarResponse = await axios.get(`http://localhost:8888/get_radar/lighthouse/${searchValue}/${_starttime}/${_endtime}`);
-      const radarData = createRadarData(radarResponse.data);
-      setRadarData(radarData);
-    } catch (error) {
-      console.error('Error fetching radar stats data:', error);
-    } finally {
-      setLoading_radar(false);
-    }
     };
     fetchData();
   }, [searchValue, _starttime, _endtime]);
@@ -390,41 +334,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
     { field: 'Begin', headerName: 'Begin Date', width: 110 },
   ];
 
-  const lightThemeOptions = {
-    scales: {
-      r: {
-        grid: {
-          color: 'rgba(0, 0, 0, 0.1)', // Light mode grid color
-        },
-        angleLines: {
-          color: 'rgba(0, 0, 0, 0.1)', // Light mode angle lines color
-        },
-        pointLabels: {
-          color: '#000000', // Light mode point labels color
-        }
-      },
-      plugins: {}
-    }
-  };
-
-  const darkThemeOptions = {
-    scales: {
-      r: {
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)', // Dark mode grid color
-        },
-        angleLines: {
-          color: 'rgba(255, 255, 255, 0.1)', // Dark mode angle lines color
-        },
-        pointLabels: {
-          color: '#ffffff', // Dark mode point labels color
-        }
-      },
-      plugins: {}
-    }
-  };
-
-  const themeOptions = theme.palette.mode === 'dark' ? darkThemeOptions : lightThemeOptions;
   const [accordionExpanded, setAccordionExpanded] = useState(false);
 
   const toggleAccordion = () => {
@@ -465,12 +374,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
     return Math.ceil(totalMemory);
   };  
 
-  const fixedBoxStyles = {
-    width: '300px', // Adjust the width as needed
-    height: '300px', // Adjust the height as needed
-    padding: '1em',
-  };
-  
   const Footer = () => (
     <Box sx={{ p: 2, backgroundColor: '#00274C', color: 'white', textAlign: 'center' }}>
       <Typography variant="body2">
@@ -478,13 +381,13 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
       </Typography>
     </Box>
   );
-  
+
   return (
-    <Paper square sx = {{ margin: '4em 0px 0px 0px', width: '100%', height: '1000px'}}>
+    <Paper square sx = {{ margin: '4em 0px 0px 0px', width: '100%', height: '850px'}}>
       <Toolbar sx={{ backgroundColor: theme.palette.mode === 'light' ? 'rgba(233, 233, 233, 1)' : 'rgba(48, 48, 48, 1)' }}>
-        <Typography variant="h5" component="h2">
-          Account Overview
-        </Typography>
+            <Typography variant="h5" component="h2">
+              Job Monitoring
+            </Typography>
       </Toolbar>
       {rows && rows.length > 0 && (
         <Stack sx={{padding: '0.4em'}} spacing={2}>
@@ -504,23 +407,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
           </Alert>
         </Stack>
       )}
-        <Stack direction={{ xs: 'column', md: 'row' }} sx={{ padding: '1em', margin: '1% 0 0 0' }}>
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item>
-            <Card variant="outlined" sx={{ boxShadow: 3, padding: '1em' }}>
-              <Typography variant="h6" sx={{ marginBottom: '1em', fontWeight: 'bold' }}>
-                Cluster Usage
-              </Typography>
-              {radar_loading ? <center><CircularProgress /></center> : <RadarChart data={radarData} themeOptions={themeOptions} />}
-            </Card>
-          </Grid>
-          <Grid item>
-            <Card variant="outlined" sx={{ boxShadow: 3, padding: '1em' }}>
-              <PartitionStats clusterName={'lighthouse'} />
-            </Card>
-          </Grid>
-        </Grid>
-
           <Dialog open={open} onClose={handleClose} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
             <DialogContent>
               {selectedRow && (
@@ -653,7 +539,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
               )}
             </DialogContent>
           </Dialog>
-
           <Dialog open={open_pending_box} onClose={handleClose_Pending} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
             <DialogContent>
               {selectedRow && (
@@ -787,7 +672,6 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
               )}
             </DialogContent>
           </Dialog>
-
           <Dialog open={open_completed_box} onClose={handleClose_Completed} TransitionComponent={Zoom} maxWidth="lg" fullWidth>
             <DialogContent>
               {selectedRow && (
@@ -920,12 +804,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
               )}
             </DialogContent>
           </Dialog>
-        </Stack>
       <Card>
           <CardContent>
-            <Typography variant="h5" component="h2" gutterBottom>
-              Job Monitoring
-            </Typography>
             <TabContext value={value}>
               <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <TabList onChange={handleChange} aria-label="lab API tabs example">
