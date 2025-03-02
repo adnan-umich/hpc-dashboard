@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useContext, useEffect, useRef} from 'react';
-import { createTheme, ThemeProvider, useTheme } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -22,14 +21,17 @@ import PopupState, { bindTrigger, bindMenu } from 'material-ui-popup-state';
 import Stack from '@mui/material/Stack';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { format, subDays, subMonths } from 'date-fns';
 import GL from './GL';
 import LH from './LH';
 import A2 from './A2';
 import About from "./hooks/about";
 import './App.css';
+
+// Import modular components
+import { ThemeContextProvider } from './hooks/ThemeContext';
+import TerminalComponent from './hooks/TerminalComponent';
+import TerminalButton from './hooks/TerminalButton';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -72,49 +74,6 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
-
-const ToggleColorMode = ({ children }) => {
-  const [mode, setMode] = useState('light');
-  const colorMode = useMemo(
-    () => ({
-      toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-      },
-    }),
-    [],
-  );
-
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-        },
-      }),
-    [mode],
-  );
-
-  return (
-    <ColorModeContext.Provider value={colorMode}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
-    </ColorModeContext.Provider>
-  );
-};
-
-const MyApp = () => {
-  const theme = useTheme();
-  const colorMode = useContext(ColorModeContext);
-
-  return (
-    <Box>
-      <IconButton sx={{ ml: 1 }} onClick={colorMode.toggleColorMode} color="inherit">
-        {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-      </IconButton>
-    </Box>
-  );
-};
-
 const App = () => {
   const [selectedComponent, setSelectedComponent] = useState('Great Lakes');
   const [searchValue, setSearchValue] = useState('');
@@ -123,10 +82,11 @@ const App = () => {
   const [_starttime, setStarttime] = useState('');
   const [_endtime, setEndtime] = useState('');
   const [showAbout, setShowAbout] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(false);
 
   useEffect(() => {
     const now = new Date();
-    const end = format(subDays(now, -2), 'yyyy-MM-dd'); // Day after tomorrow's date
+    const end = format(subDays(now, -2), 'yyyy-MM-dd');
     setEndtime(end);
   
     let start;
@@ -151,7 +111,7 @@ const App = () => {
         break;
     }
     setStarttime(start);
-  }, [time]); // Empty dependency array to ensure it only runs once on mount  
+  }, [time]); 
 
   useEffect(() => {
     const cachedSearch = localStorage.getItem('searchValue');
@@ -159,6 +119,14 @@ const App = () => {
       setSearchValue(cachedSearch);
       setSubmittedSearch(cachedSearch);
     }
+  }, []);
+
+  const toggleTerminal = useCallback(() => {
+    setTerminalOpen(!terminalOpen);
+  }, [terminalOpen]);
+
+  const handleCloseTerminal = useCallback(() => {
+    setTerminalOpen(false);
   }, []);
 
   const handleTimeChange = (event) => {
@@ -192,7 +160,7 @@ const App = () => {
   };
 
   return (
-    <ToggleColorMode>
+    <ThemeContextProvider>
       <Stack>
         <Box sx={{ flexGrow: 1 }}>
           <AppBar sx={{ width: '100vw' }}>
@@ -285,19 +253,40 @@ const App = () => {
                   />
                 </Search>
               </form>
-              <MyApp />
+              <TerminalButton 
+                onToggleTerminal={toggleTerminal} 
+                terminalOpen={terminalOpen} 
+              />
             </Toolbar>
           </AppBar>
         </Box>
-        {renderComponent()}
+        
+        {/* Main content with margin to accommodate terminal when open */}
+        <Box sx={{ 
+          mt: 0,
+          pt: 0,
+          mb: terminalOpen ? '40%' : 0,
+          transition: 'margin-bottom 0.3s ease-in-out'
+        }}>
+          {renderComponent()}
+        </Box>
+        
+        {/* Terminal component */}
+        <TerminalComponent 
+          isOpen={terminalOpen} 
+          onClose={handleCloseTerminal}
+        />
+        
         <Dialog
           open={showAbout}
           onClose={() => setShowAbout(false)}
           aria-labelledby="about-dialog-title"
           aria-describedby="about-dialog-description"
         >
-          <DialogTitle id="about-dialog-title"><InfoOutlinedIcon sx = {{margin: "0em 1em -0.3em 0em", color: '#2F65A7'}} fontSize='large'></InfoOutlinedIcon>
-          HPC Dashboard</DialogTitle>
+          <DialogTitle id="about-dialog-title">
+            <InfoOutlinedIcon sx={{ margin: "0em 1em -0.3em 0em", color: '#2F65A7' }} fontSize='large'></InfoOutlinedIcon>
+            HPC Dashboard
+          </DialogTitle>
           <About />
           <DialogActions>
             <Button onClick={() => setShowAbout(false)} color="primary">
@@ -306,7 +295,7 @@ const App = () => {
           </DialogActions>
         </Dialog>
       </Stack>
-    </ToggleColorMode>
+    </ThemeContextProvider>
   );
 };
 
