@@ -222,13 +222,15 @@ const TerminalComponent = ({ isOpen, onClose }) => {
   // Submit command
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!command.trim()) return;
+    // Remove this line: if (!command.trim()) return;
     
-    // Add to history
-    setCommandHistory(prev => [...prev, command]);
+    // Add to history (only if command is not empty)
+    if (command.trim()) {
+      setCommandHistory(prev => [...prev, command]);
+    }
     setHistoryIndex(-1);
     
-    // Send command to server
+    // Send command to server even if empty
     sendCommand(command + '\n');
     setCommand('');
     
