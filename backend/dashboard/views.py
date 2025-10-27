@@ -11,6 +11,7 @@ from .services.get_tres import Tres
 from .services.seff import Seff
 from .services.budget import Budget
 from .services.get_job_script import GetJobScript
+from .services.health import Health
 
 def get_partition_stats(request, cluster='greatlakes'):
     return Partitions.fetch_partition_stats(cluster)
@@ -41,6 +42,9 @@ def get_budget(request, cluster='greatlakes', account=None):
 
 def get_job_script(request, index='slurm_greatlakes', job_id=None):
     return GetJobScript.fetch_script(index=index, job_id=job_id)
+
+def get_health(request, cluster='greatlakes'):
+    return Health.get_health(cluster=cluster)
 
 def fetch_root_account_from_shim(request):
     # URL of the external API

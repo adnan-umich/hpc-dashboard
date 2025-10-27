@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import BT from './BT';
+import Shim from './Shim'
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import reportWebVitals from './reportWebVitals';
@@ -15,6 +16,7 @@ root.render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="buildtest" element={<BT />} />
+        <Route path="shim" element={<Shim />} />
       </Routes>
     </Router>
   </React.StrictMode>

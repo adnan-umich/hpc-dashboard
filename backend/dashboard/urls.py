@@ -32,4 +32,5 @@ urlpatterns = [
     path('get_seff/<str:cluster>/<jobid>', views.get_seff, name='get_seff'),
     path('get_budget/<str:cluster>/<account>', views.get_budget, name='get_budget'),
     path('get_job_script/<str:index>/<job_id>', views.get_job_script, name='get_job_script'),
+    path('get_health/<str:cluster>/', views.get_health, name='get_health'),
 ]
