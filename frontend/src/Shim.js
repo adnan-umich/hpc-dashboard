@@ -300,92 +300,126 @@ const HealthMonitor = () => {
         </Card>
       </Grid>
 
-      {/* Charts */}
+      {/* Unified Chart with 3 Axes */}
       <Grid item xs={12}>
         <Card sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Memory Usage Over Time
+            System Health Metrics Over Time
           </Typography>
           {loading ? (
             <LinearProgress />
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={healthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value, name) => [
-                    `${value} ${name === 'memory_usage_gb' ? 'GB' : ''}`,
-                    name.replace('_', ' ').toUpperCase()
-                  ]}
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={healthData} margin={{ top: 20, right: -10, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 12 }}
+                  interval="preserveStartEnd"
                 />
-                <Legend />
+                
+                {/* Left Y-Axis for Memory (GB) */}
+                <YAxis 
+                  yAxisId="memory"
+                  orientation="left"
+                  tick={{ fontSize: 10, fill: '#1976d2' }}
+                  tickLine={{ stroke: '#1976d2' }}
+                  axisLine={{ stroke: '#1976d2', strokeWidth: 1 }}
+                  label={{ 
+                    value: 'Memory (GB)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle', fill: '#1976d2', fontWeight: 'bold', fontSize: '11px' }
+                  }}
+                />
+                
+                {/* Right Y-Axis for CPU (%) */}
+                <YAxis 
+                  yAxisId="cpu"
+                  orientation="right"
+                  tick={{ fontSize: 10, fill: '#dc004e' }}
+                  tickLine={{ stroke: '#dc004e' }}
+                  axisLine={{ stroke: '#dc004e', strokeWidth: 1 }}
+                  label={{ 
+                    value: 'CPU (%)', 
+                    angle: 90, 
+                    position: 'insideRight',
+                    offset: -30,
+                    style: { textAnchor: 'middle', fill: '#dc004e', fontWeight: 'bold', fontSize: '11px' }
+                  }}
+                  domain={[0, 100]}
+                  width={40}
+                />
+                
+                {/* Third Y-Axis for Threads (positioned with larger offset) */}
+                <YAxis 
+                  yAxisId="threads"
+                  orientation="right"
+                  tick={{ fontSize: 10, fill: '#2e7d32' }}
+                  axisLine={{ stroke: '#2e7d32', strokeWidth: 1 }}
+                  tickLine={{ stroke: '#2e7d32' }}
+                  label={{ 
+                    value: 'Threads', 
+                    angle: 90, 
+                    position: 'outside',
+                    offset: 130,
+                    style: { textAnchor: 'middle', fill: '#2e7d32', fontWeight: 'bold', fontSize: '11px' }
+                  }}
+                  width={80}
+                />
+                
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    const unit = name === 'Memory' ? ' GB' : name === 'CPU' ? '%' : '';
+                    return [`${value}${unit}`, name];
+                  }}
+                  labelFormatter={(label) => `Time: ${label}`}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #ccc',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                  }}
+                />
+                
+                <Legend 
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="line"
+                />
+                
+                {/* Memory Line - Blue */}
                 <Line 
+                  yAxisId="memory"
                   type="monotone" 
                   dataKey="memory_usage_gb" 
                   stroke="#1976d2" 
-                  strokeWidth={2}
-                  name="Memory (GB)"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#1976d2' }}
+                  activeDot={{ r: 6, fill: '#1976d2', stroke: '#fff', strokeWidth: 2 }}
+                  name="Memory"
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <Card sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            CPU Usage Over Time
-          </Typography>
-          {loading ? (
-            <LinearProgress />
-          ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={healthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => [`${value}%`, 'CPU Usage']}
-                />
-                <Legend />
+                
+                {/* CPU Line - Red */}
                 <Line 
+                  yAxisId="cpu"
                   type="monotone" 
                   dataKey="cpu_percent" 
                   stroke="#dc004e" 
-                  strokeWidth={2}
-                  name="CPU %"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#dc004e' }}
+                  activeDot={{ r: 6, fill: '#dc004e', stroke: '#fff', strokeWidth: 2 }}
+                  name="CPU"
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <Card sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Thread Count Over Time
-          </Typography>
-          {loading ? (
-            <LinearProgress />
-          ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={healthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => [`${value}`, 'Threads']}
-                />
-                <Legend />
+                
+                {/* Threads Line - Green */}
                 <Line 
+                  yAxisId="threads"
                   type="monotone" 
                   dataKey="thread_count" 
                   stroke="#2e7d32" 
-                  strokeWidth={2}
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#2e7d32' }}
+                  activeDot={{ r: 6, fill: '#2e7d32', stroke: '#fff', strokeWidth: 2 }}
                   name="Threads"
                 />
               </LineChart>
