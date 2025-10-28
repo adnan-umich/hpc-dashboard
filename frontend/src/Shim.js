@@ -21,6 +21,14 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { openDB } from 'idb';
 import axios from 'axios';
@@ -102,63 +110,167 @@ const MyApp = () => {
   );
 };
 
+// Server configurations
+const SERVERS = {
+  'greatlakes': { 
+    name: 'Great Lakes', 
+    url: 'http://localhost:8888/get_health/greatlakes/',
+    color: '#1976d2' 
+  },
+  'shim1': { 
+    name: 'Lighthouse', 
+    url: 'http://localhost:8888/get_health/lighthouse/',
+    color: '#dc004e' 
+  },
+  'shim2': { 
+    name: 'Armis2', 
+    url: 'http://localhost:8888/get_health/armis2/',
+    color: '#2e7d32' 
+  }
+};
+
 // IndexedDB setup and operations
 const DB_NAME = 'HealthMonitorDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'healthData';
 
+let dbInstance = null;
+
 const initDB = async () => {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, {
-          keyPath: 'id',
-          autoIncrement: true,
-        });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-    },
-  });
-};
-
-const saveHealthData = async (data) => {
-  const db = await initDB();
-  const tx = db.transaction(STORE_NAME, 'readwrite');
-  await tx.objectStore(STORE_NAME).add({
-    ...data,
-    timestamp: Date.now(),
-    date: new Date().toISOString(),
-  });
-  await tx.done;
-};
-
-const getHealthData = async (limit = 50) => {
-  const db = await initDB();
-  const tx = db.transaction(STORE_NAME, 'readonly');
-  const store = tx.objectStore(STORE_NAME);
-  const index = store.index('timestamp');
-  
-  // Get all data and sort by timestamp (newest first)
-  const allData = await index.getAll();
-  return allData
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, limit)
-    .reverse(); // Reverse to show oldest to newest in chart
-};
-
-const clearOldData = async (hoursToKeep = 24) => {
-  const db = await initDB();
-  const tx = db.transaction(STORE_NAME, 'readwrite');
-  const store = tx.objectStore(STORE_NAME);
-  const index = store.index('timestamp');
-  
-  const cutoffTime = Date.now() - (hoursToKeep * 60 * 60 * 1000);
-  const oldData = await index.getAll(IDBKeyRange.upperBound(cutoffTime));
-  
-  for (const item of oldData) {
-    await store.delete(item.id);
+  if (dbInstance) {
+    return dbInstance;
   }
-  await tx.done;
+  
+  try {
+    dbInstance = await openDB(DB_NAME, DB_VERSION, {
+      upgrade(db, oldVersion, newVersion, transaction) {
+        console.log(`Upgrading database from version ${oldVersion} to ${DB_VERSION}`);
+        
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          const store = db.createObjectStore(STORE_NAME, {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+          store.createIndex('server', 'server', { unique: false });
+          store.createIndex('serverTimestamp', ['server', 'timestamp'], { unique: false });
+        } else if (oldVersion < 2) {
+          // Get the store from the upgrade transaction
+          const store = transaction.objectStore(STORE_NAME);
+          if (!store.indexNames.contains('server')) {
+            store.createIndex('server', 'server', { unique: false });
+          }
+          if (!store.indexNames.contains('serverTimestamp')) {
+            store.createIndex('serverTimestamp', ['server', 'timestamp'], { unique: false });
+          }
+        }
+      },
+      blocked() {
+        console.warn('Database upgrade blocked by another connection');
+      },
+      blocking() {
+        console.warn('This connection is blocking a database upgrade');
+        // Close the database to allow upgrade
+        if (dbInstance) {
+          dbInstance.close();
+          dbInstance = null;
+        }
+      },
+    });
+    
+    return dbInstance;
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    dbInstance = null;
+    throw error;
+  }
+};
+
+const saveHealthData = async (data, serverKey) => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    await tx.objectStore(STORE_NAME).add({
+      ...data,
+      server: serverKey,
+      timestamp: Date.now(),
+      date: new Date().toISOString(),
+    });
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to save health data:', error);
+    // If database is being upgraded, wait and retry
+    if (error.name === 'InvalidStateError') {
+      setTimeout(() => saveHealthData(data, serverKey), 1000);
+    }
+  }
+};
+
+const getHealthData = async (serverKey, limit = 50) => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    
+    // Check if the serverTimestamp index exists, fallback to server index
+    let index;
+    if (store.indexNames.contains('serverTimestamp')) {
+      index = store.index('serverTimestamp');
+      const range = IDBKeyRange.bound([serverKey, 0], [serverKey, Date.now()]);
+      const allData = await index.getAll(range);
+      return allData
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, limit)
+        .reverse();
+    } else {
+      // Fallback for older database versions
+      const allData = await store.getAll();
+      const serverData = allData
+        .filter(item => item.server === serverKey)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, limit)
+        .reverse();
+      return serverData;
+    }
+  } catch (error) {
+    console.error('Failed to get health data:', error);
+    return [];
+  }
+};
+
+const clearOldData = async (serverKey, hoursToKeep = 24) => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    
+    const cutoffTime = Date.now() - (hoursToKeep * 60 * 60 * 1000);
+    
+    // Check if the serverTimestamp index exists
+    if (store.indexNames.contains('serverTimestamp')) {
+      const index = store.index('serverTimestamp');
+      const range = IDBKeyRange.bound([serverKey, 0], [serverKey, cutoffTime]);
+      const oldData = await index.getAll(range);
+      
+      for (const item of oldData) {
+        await store.delete(item.id);
+      }
+    } else {
+      // Fallback for older database versions
+      const allData = await store.getAll();
+      const oldData = allData.filter(item => 
+        item.server === serverKey && item.timestamp < cutoffTime
+      );
+      
+      for (const item of oldData) {
+        await store.delete(item.id);
+      }
+    }
+    
+    await tx.done;
+  } catch (error) {
+    console.error('Failed to clear old data:', error);
+  }
 };
 
 // Health monitoring component
@@ -167,13 +279,15 @@ const HealthMonitor = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const HEARTBEAT_INTERVAL = 10000; // 10 seconds
-  const API_URL = 'http://localhost:8888/get_health/greatlakes/';
+  const [selectedServer, setSelectedServer] = useState('greatlakes');
+  const [isMonitoring, setIsMonitoring] = useState(true);
+  const [frequency, setFrequency] = useState(10); // seconds
+  const [intervalId, setIntervalId] = useState(null);
 
   const fetchHealthData = async () => {
     try {
-      const response = await axios.get(API_URL, {
+      const serverConfig = SERVERS[selectedServer];
+      const response = await axios.get(serverConfig.url, {
         timeout: 5000,
       });
       
@@ -184,25 +298,25 @@ const HealthMonitor = () => {
           thread_count: response.data.thread_count || 0,
         };
         
-        await saveHealthData(healthMetrics);
+        await saveHealthData(healthMetrics, selectedServer);
         setIsOnline(true);
         setLastUpdate(new Date());
         
         // Clean up old data (keep last 24 hours)
-        await clearOldData(24);
+        await clearOldData(selectedServer, 24);
         
         // Refresh the chart data
         loadChartData();
       }
     } catch (error) {
-      console.error('Failed to fetch health data:', error);
+      console.error(`Failed to fetch health data for ${selectedServer}:`, error);
       setIsOnline(false);
     }
   };
 
   const loadChartData = async () => {
     try {
-      const data = await getHealthData(100); // Get last 100 entries
+      const data = await getHealthData(selectedServer, 100); // Get last 100 entries for selected server
       const formattedData = data.map((item, index) => ({
         time: new Date(item.timestamp).toLocaleTimeString(),
         memory_usage_gb: parseFloat(item.memory_usage_gb?.toFixed(2) || 0),
@@ -219,15 +333,32 @@ const HealthMonitor = () => {
   };
 
   useEffect(() => {
+    // Clear existing interval
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+
     // Initial load
     loadChartData();
-    fetchHealthData();
-
-    // Set up heartbeat
-    const interval = setInterval(fetchHealthData, HEARTBEAT_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, []);
+    
+    if (isMonitoring) {
+      // Immediate fetch
+      fetchHealthData();
+      
+      // Set up heartbeat with current frequency
+      const interval = setInterval(fetchHealthData, frequency * 1000);
+      setIntervalId(interval);
+      
+      return () => {
+        clearInterval(interval);
+        setIntervalId(null);
+      };
+    } else {
+      // When monitoring is off, just set offline status
+      setIsOnline(false);
+    }
+  }, [selectedServer, isMonitoring, frequency]); // Reload when server, monitoring state, or frequency changes
 
   const getLatestMetrics = () => {
     if (healthData.length === 0) return { memory: 0, cpu: 0, threads: 0 };
@@ -243,6 +374,102 @@ const HealthMonitor = () => {
 
   return (
     <Grid container spacing={3} sx={{ mt: 2 }}>
+      {/* Server Selector & Controls */}
+      <Grid item xs={12}>
+        <Card sx={{ p: 2, mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Server Monitoring Dashboard
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel id="server-select-label">Select Server</InputLabel>
+              <Select
+                labelId="server-select-label"
+                value={selectedServer}
+                label="Select Server"
+                onChange={(e) => {
+                  setSelectedServer(e.target.value);
+                  setLoading(true);
+                  setIsOnline(false);
+                }}
+                sx={{ 
+                  '& .MuiSelect-select': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }
+                }}
+              >
+                {Object.entries(SERVERS).map(([key, server]) => (
+                  <MenuItem key={key} value={key}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box 
+                        sx={{ 
+                          width: 12, 
+                          height: 12, 
+                          borderRadius: '50%', 
+                          backgroundColor: server.color 
+                        }} 
+                      />
+                      {server.name}
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          {/* Monitoring Controls */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isMonitoring}
+                  onChange={(e) => setIsMonitoring(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isMonitoring ? <PlayArrowIcon color="success" /> : <PauseIcon color="error" />}
+                  <Typography variant="body2">
+                    API Monitoring {isMonitoring ? 'ON' : 'OFF'}
+                  </Typography>
+                </Box>
+              }
+            />
+            
+            <TextField
+              size="small"
+              label="Frequency (seconds)"
+              type="number"
+              value={frequency}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                if (value >= 1 && value <= 300) { // 1 second to 5 minutes
+                  setFrequency(value);
+                }
+              }}
+              inputProps={{ min: 1, max: 300 }}
+              sx={{ width: 160 }}
+              disabled={!isMonitoring}
+            />
+            
+            <Typography variant="caption" color="text.secondary">
+              Next update: {isMonitoring ? `${frequency}s` : 'Paused'}
+            </Typography>
+            
+            <Chip 
+              size="small"
+              icon={isMonitoring ? <PlayArrowIcon /> : <PauseIcon />}
+              label={`${frequency}s interval`}
+              color={isMonitoring ? 'success' : 'default'}
+              variant={isMonitoring ? 'filled' : 'outlined'}
+            />
+          </Box>
+        </Card>
+      </Grid>
+
       {/* Status Cards */}
       <Grid item xs={12} md={4}>
         <Card sx={{ p: 2, textAlign: 'center' }}>
@@ -254,7 +481,7 @@ const HealthMonitor = () => {
             }} 
           />
           <Typography variant="h6" gutterBottom>
-            System Status
+            {SERVERS[selectedServer].name}
           </Typography>
           <Chip 
             label={isOnline ? 'Online' : 'Offline'} 
@@ -362,7 +589,7 @@ const HealthMonitor = () => {
                     value: 'Threads', 
                     angle: 90, 
                     position: 'outside',
-                    offset: 130,
+                    offset: 140,
                     style: { textAnchor: 'middle', fill: '#2e7d32', fontWeight: 'bold', fontSize: '11px' }
                   }}
                   width={80}
