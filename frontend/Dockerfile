@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package.json and install dependencies
 COPY package*.json ./
 RUN apt-get update && apt-get install -y python3 build-essential
-RUN npm install
-RUN npm install web-vitals
+RUN npm install --force
+RUN npm install --force web-vitals
 
 # Copy the rest of the application and build the app
 COPY . .

@@ -21,6 +21,9 @@ class GetJobScript:
                 "bool": {
                     "must": [
                         {"match_phrase": {"jobid": {"query": job_id}}}
+                    ],
+                    "filter": [
+                        {"range": {"@submit": {"gte": "now-1y", "lte": "now"}}}
                     ]
                 }
             }

@@ -8,8 +8,11 @@ services:
     build:
       context: ./backend
     ports:
-      - "8888:8888"
-      - "8000:8000"
+      - "8888:8888" # backend
+      - "8000:8000" # dashboard shim
+      - "5000:5000" # great lakes prod shim (5000)
+      - "5001:5000" # lighthouse prod shim
+      - "5002:5000" # armis2 prod shim
   frontend:
     build:
       context: ./frontend

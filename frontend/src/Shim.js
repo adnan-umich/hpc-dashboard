@@ -29,7 +29,7 @@ import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { openDB } from 'idb';
 import axios from 'axios';
 
@@ -114,17 +114,17 @@ const MyApp = () => {
 const SERVERS = {
   'greatlakes': { 
     name: 'Great Lakes', 
-    url: 'http://localhost:8888/get_health/greatlakes/',
+    url: '/get_health/greatlakes/',
     color: '#1976d2' 
   },
   'shim1': { 
     name: 'Lighthouse', 
-    url: 'http://localhost:8888/get_health/lighthouse/',
+    url: '/get_health/lighthouse/',
     color: '#dc004e' 
   },
   'shim2': { 
     name: 'Armis2', 
-    url: 'http://localhost:8888/get_health/armis2/',
+    url: '/get_health/armis2/',
     color: '#2e7d32' 
   }
 };
@@ -317,6 +317,7 @@ const HealthMonitor = () => {
   const loadChartData = async () => {
     try {
       const data = await getHealthData(selectedServer, 100); // Get last 100 entries for selected server
+      
       const formattedData = data.map((item, index) => ({
         time: new Date(item.timestamp).toLocaleTimeString(),
         memory_usage_gb: parseFloat(item.memory_usage_gb?.toFixed(2) || 0),
@@ -328,7 +329,6 @@ const HealthMonitor = () => {
       setLoading(false);
     } catch (error) {
       console.error('Failed to load chart data:', error);
-      setLoading(false);
     }
   };
 
@@ -343,11 +343,15 @@ const HealthMonitor = () => {
     loadChartData();
     
     if (isMonitoring) {
-      // Immediate fetch
+      // Try to fetch real data first, fallback to sample data
       fetchHealthData();
       
-      // Set up heartbeat with current frequency
-      const interval = setInterval(fetchHealthData, frequency * 1000);
+      // Set up interval - try real API first, then sample data
+      const interval = setInterval(() => {
+
+          fetchHealthData();
+
+      }, frequency * 1000);
       setIntervalId(interval);
       
       return () => {
@@ -537,7 +541,34 @@ const HealthMonitor = () => {
             <LinearProgress />
           ) : (
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={healthData} margin={{ top: 20, right: -10, left: 20, bottom: 5 }}>
+              <AreaChart data={healthData} margin={{ top: 20, right: -10, left: 20, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="memoryGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1976d2" stopOpacity={0.05}/>
+                    <stop offset="95%" stopColor="#1976d2" stopOpacity={0.05}/>
+                  </linearGradient>
+                  <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#dc004e" stopOpacity={0.05}/>
+                    <stop offset="95%" stopColor="#dc004e" stopOpacity={0.05}/>
+                  </linearGradient>
+                  <linearGradient id="threadsGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2e7d32" stopOpacity={0.05}/>
+                    <stop offset="95%" stopColor="#2e7d32" stopOpacity={0.05}/>
+                  </linearGradient>
+                  <linearGradient id="memoryLine" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1976d2" stopOpacity={1}/>
+                    <stop offset="95%" stopColor="#0d47a1" stopOpacity={1}/>
+                  </linearGradient>
+                  <linearGradient id="cpuLine" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#dc004e" stopOpacity={1}/>
+                    <stop offset="95%" stopColor="#b71c1c" stopOpacity={1}/>
+                  </linearGradient>
+                  <linearGradient id="threadsLine" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2e7d32" stopOpacity={1}/>
+                    <stop offset="95%" stopColor="#1b5e20" stopOpacity={1}/>
+                  </linearGradient>
+                </defs>
+                
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                 <XAxis 
                   dataKey="time" 
@@ -607,6 +638,7 @@ const HealthMonitor = () => {
                     borderRadius: '8px',
                     boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
                   }}
+                  animationDuration={0}
                 />
                 
                 <Legend 
@@ -614,42 +646,48 @@ const HealthMonitor = () => {
                   iconType="line"
                 />
                 
-                {/* Memory Line - Blue */}
-                <Line 
+                {/* Memory Area - Blue with gradient */}
+                <Area 
                   yAxisId="memory"
                   type="monotone" 
                   dataKey="memory_usage_gb" 
-                  stroke="#1976d2" 
+                  stroke="url(#memoryLine)"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#1976d2' }}
-                  activeDot={{ r: 6, fill: '#1976d2', stroke: '#fff', strokeWidth: 2 }}
+                  fill="url(#memoryGradient)"
+                  dot={false}
+                  activeDot={false}
                   name="Memory"
+                  isAnimationActive={false}
                 />
                 
-                {/* CPU Line - Red */}
-                <Line 
+                {/* CPU Area - Red with gradient */}
+                <Area 
                   yAxisId="cpu"
                   type="monotone" 
                   dataKey="cpu_percent" 
-                  stroke="#dc004e" 
+                  stroke="url(#cpuLine)"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#dc004e' }}
-                  activeDot={{ r: 6, fill: '#dc004e', stroke: '#fff', strokeWidth: 2 }}
+                  fill="url(#cpuGradient)"
+                  dot={false}
+                  activeDot={false}
                   name="CPU"
+                  isAnimationActive={false}
                 />
                 
-                {/* Threads Line - Green */}
-                <Line 
+                {/* Threads Area - Green with gradient */}
+                <Area 
                   yAxisId="threads"
                   type="monotone" 
                   dataKey="thread_count" 
-                  stroke="#2e7d32" 
+                  stroke="url(#threadsLine)"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#2e7d32' }}
-                  activeDot={{ r: 6, fill: '#2e7d32', stroke: '#fff', strokeWidth: 2 }}
+                  fill="url(#threadsGradient)"
+                  dot={false}
+                  activeDot={false}
                   name="Threads"
+                  isAnimationActive={false}
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           )}
         </Card>
