@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   backend:
+    image: hpc-dashboard/backend:${TAG}
     volumes:
       - static:/static
     env_file:
@@ -14,6 +15,7 @@ services:
       - "5001:5000" # lighthouse prod shim
       - "5002:5000" # armis2 prod shim
   frontend:
+    image: hpc-dashboard/frontend:${TAG}
     build:
       context: ./frontend
     volumes:
@@ -21,6 +23,7 @@ services:
     ports:
       - 3000:3000
   nginx:
+    image: hpc-dashboard/nginx:${TAG}
     build:
       context: ./nginx
     volumes:

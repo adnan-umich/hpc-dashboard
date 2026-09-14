@@ -7,7 +7,7 @@ import { ExpandMore as ExpandMoreIcon, Warning as WarningIcon, Error as ErrorIco
 import Zoom from '@mui/material/Zoom';
 
 // HPC Hooks
-import { fetchJobStats } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
+import { fetchJobStats, useJobEfficiency, jobEfficiencyStyles } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
 
@@ -55,6 +55,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const [rows, setRows] = useState([]);
   const [queuedRows, setQueuedRows] = useState([]);
   const [completedJobs, setCompleteJobs] = useState([]);
+  const getEfficiencyRowClassName = useJobEfficiency('lighthouse', completedJobs);
   const [selectedRow, setSelectedRow] = useState(null);
   const [open, setOpen] = useState(false);
   const [open_pending_box, setOpen_PendingBox] = useState(false);
@@ -843,7 +844,8 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                   <center><CircularProgress /></center>
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
-                    <DataGrid rows={completedJobs} columns={complete_column} onRowClick={handleRowClick_Completed} 
+                    <Typography variant="caption">Amber rows: CPU or memory efficiency below 50%. Unavailable statistics are not highlighted.</Typography>
+                    <DataGrid getRowClassName={getEfficiencyRowClassName} sx={jobEfficiencyStyles} rows={completedJobs} columns={complete_column} onRowClick={handleRowClick_Completed}
                     disableSelectionOnClick
                     disableColumnSelector
                     />

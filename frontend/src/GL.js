@@ -10,7 +10,7 @@ import { CSVLink } from 'react-csv';
 // HPC Hooks
 import PartitionStats from './hooks/fetch-partition-data.js';
 import RadarChart from './hooks/fetch-radar-data.js';
-import { fetchJobStats } from './hooks/my-job-statistics.js'; 
+import { fetchJobStats, useJobEfficiency, jobEfficiencyStyles } from './hooks/my-job-statistics.js';
 import { fetchJobScript } from './hooks/fetch-job-script.js'; 
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
@@ -111,6 +111,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
   const [rows, setRows] = useState([]);
   const [queuedRows, setQueuedRows] = useState([]);
   const [completedJobs, setCompleteJobs] = useState([]);
+  const getEfficiencyRowClassName = useJobEfficiency('greatlakes', completedJobs);
   const [radarData, setRadarData] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [open, setOpen] = useState(false);
@@ -1156,8 +1157,11 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                           </Button>
                         </Box>
                     {/* DataGrid with Filtered Jobs */}
+                    <Typography variant="caption">Amber rows: CPU or memory efficiency below 50%. Unavailable statistics are not highlighted.</Typography>
                     <DataGrid
                       rows={filteredJobs}
+                      getRowClassName={getEfficiencyRowClassName}
+                      sx={jobEfficiencyStyles}
                       columns={complete_column}
                       onRowClick={handleRowClick_Completed}
                       disableSelectionOnClick
