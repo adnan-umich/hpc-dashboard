@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Box, Container, Typography, CircularProgress } from '@mui/material';
+import { apiUrl } from './apiClient';
 
-const fetchBudget = async (cluster, account) => {
+const fetchBudget = async (cluster, account, apiBase) => {
   try {
-    const response = await axios.get(`http://localhost:8888/get_budget/${cluster}/${account}`);
+    const response = await axios.get(apiUrl(`/get_budget/${cluster}/${account}`, apiBase));
     return response.data; // Adjust as necessary based on the API response format
   } catch (error) {
     console.error('Error fetching account budget:', error);
@@ -12,16 +13,16 @@ const fetchBudget = async (cluster, account) => {
   }
 };
 
-const BudgetDisplay = ({ cluster, account }) => {
+const BudgetDisplay = ({ cluster, account, apiBase }) => {
   const [budgetData, setBudgetData] = useState(null);
 
   useEffect(() => {
     const getBudget = async () => {
-      const data = await fetchBudget(cluster, account);
+      const data = await fetchBudget(cluster, account, apiBase);
       setBudgetData(data);
     };
     getBudget();
-  }, [cluster, account]);
+  }, [cluster, account, apiBase]);
   
 
   if (budgetData === null) {

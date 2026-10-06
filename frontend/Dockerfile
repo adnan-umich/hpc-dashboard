@@ -1,5 +1,5 @@
 # Stage 1: Build the React app
-FROM node:20.9.0-bullseye-slim AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve the built files
-FROM node:20.9.0-bullseye-slim
+FROM node:20-bookworm-slim
 
 # Install the `serve` package globally
 RUN apt-get update && apt-get install -y python3 build-essential

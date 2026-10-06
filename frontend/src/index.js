@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import BT from './BT';
 import Shim from './Shim'
+import CustomRoutePage from './CustomRoutePage';
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import reportWebVitals from './reportWebVitals';
@@ -17,6 +18,7 @@ root.render(
         <Route path="/" element={<App />} />
         <Route path="buildtest" element={<BT />} />
         <Route path="shim" element={<Shim />} />
+        <Route path="*" element={<CustomRoutePage />} />
       </Routes>
     </Router>
   </React.StrictMode>

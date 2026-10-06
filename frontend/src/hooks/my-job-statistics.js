@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { apiUrl } from './apiClient';
 
-export const fetchJobStats = async (cluster, jobId) => {
+export const fetchJobStats = async (cluster, jobId, apiBase) => {
     try {
-      const response = await axios.get(`http://localhost:8888/get_my_job_stats/${cluster}/${jobId}`);
+      const response = await axios.get(apiUrl(`/get_my_job_stats/${cluster}/${jobId}`, apiBase));
       return response.data; // Adjust as necessary based on the API response format
     } catch (error) {
       console.error('Error fetching job stats:', error);

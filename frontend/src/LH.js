@@ -10,6 +10,9 @@ import Zoom from '@mui/material/Zoom';
 import { fetchJobStats, useJobEfficiency, jobEfficiencyStyles } from './hooks/my-job-statistics.js'; // Adjust the import path as necessary
 import { fetchJobTres } from './hooks/fetch-job-tres.js'; 
 import { fetchSeff } from './hooks/fetch-seff.js'; 
+import { apiUrl } from './hooks/apiClient';
+import { useConfig } from './hooks/ConfigContext';
+import { buildColumnVisibilityModel } from './hooks/columnVisibility';
 
 function createData(jobid, status, warning, name, user, partition, nodes, cpus, timeleft, memory, reason, command, start_time) {
   return {
@@ -51,6 +54,7 @@ function createData_CompletedJob(jobid, name, state, user, partition, nodes, cpu
 
 export default function CollapsibleTable({ searchValue, _starttime, _endtime }) {
   const theme = useTheme();
+  const { config } = useConfig();
   const [value, setValue] = useState('1');
   const [rows, setRows] = useState([]);
   const [queuedRows, setQueuedRows] = useState([]);
@@ -76,7 +80,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
 
     const fetchData = async () => {
       try {
-         await axios.get(`http://localhost:8888/get_active/lighthouse/${searchValue}/`)
+         await axios.get(apiUrl(`/get_active/lighthouse/${searchValue}/`))
         .then(response => {
           console.log('Active jobs data:', response.data); // Debugging log 
           // jobid, status, warning, name, user, partition, nodes, cpus, timeleft, cost, details, memory, reason, command
@@ -92,7 +96,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         setLoading_active(false);
       }
       try {
-        await axios.get(`http://localhost:8888/get_squeue/lighthouse/${searchValue}/`)
+        await axios.get(apiUrl(`/get_squeue/lighthouse/${searchValue}/`))
         .then(response => {
           console.log('Queued jobs data:', response.data); // Debugging log
           const queuedJobs = response.data.map(job => createData(job.jobid, job.state, false, job.name, job.user, job.partition, job.nodes, job.cpus, job.time_left, job.max_memory, job.reason, job.command, job.start_time));
@@ -107,7 +111,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
         setLoading_pending(false);
       }
       try {
-        await axios.get(`http://localhost:8888/get_completed/lighthouse/${searchValue}/${_starttime}/${_endtime}`)
+        await axios.get(apiUrl(`/get_completed/lighthouse/${searchValue}/${_starttime}/${_endtime}`))
         .then(response => {
           console.log('Completed jobs data:', response.data); // Debugging log
           const completedJobs = response.data.map(job => createData_CompletedJob(job.jobid, job.job_name, job.state, job.user, job.partition, job.nodes, job.cpus, job.submittime, job.endtime, job.starttime, job.memory, job.elapsed_time, job.workdir, job.submitline, job.begin_date));
@@ -820,7 +824,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                   <center><CircularProgress /></center>
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
-                    <DataGrid rows={rows} columns={active_columns} onRowClick={handleRowClick} 
+                    <DataGrid rows={rows} columns={active_columns} columnVisibilityModel={buildColumnVisibilityModel('active', config.columns)} onRowClick={handleRowClick} 
                     disableSelectionOnClick
                     disableColumnSelector
                     />
@@ -832,7 +836,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                  <center><CircularProgress /></center>
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
-                    <DataGrid rows={queuedRows} columns={pending_column} onRowClick={handleRowClick_Pending} 
+                    <DataGrid rows={queuedRows} columns={pending_column} columnVisibilityModel={buildColumnVisibilityModel('pending', config.columns)} onRowClick={handleRowClick_Pending} 
                     disableSelectionOnClick
                     disableColumnSelector
                     />
@@ -845,7 +849,7 @@ export default function CollapsibleTable({ searchValue, _starttime, _endtime }) 
                 ) : (
                   <Box className="data-grid-container" sx={{ height: 520, width: '100%' }}>
                     <Typography variant="caption">Amber rows: CPU or memory efficiency below 50%. Unavailable statistics are not highlighted.</Typography>
-                    <DataGrid getRowClassName={getEfficiencyRowClassName} sx={jobEfficiencyStyles} rows={completedJobs} columns={complete_column} onRowClick={handleRowClick_Completed}
+                    <DataGrid getRowClassName={getEfficiencyRowClassName} sx={jobEfficiencyStyles} rows={completedJobs} columns={complete_column} columnVisibilityModel={buildColumnVisibilityModel('completed', config.columns)} onRowClick={handleRowClick_Completed}
                     disableSelectionOnClick
                     disableColumnSelector
                     />

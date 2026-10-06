@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { Stack, Typography } from '@mui/material';
+import { apiUrl } from './apiClient';
 
-const PartitionStats = ({ clusterName }) => {
+const PartitionStats = ({ clusterName, apiBase }) => {
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`http://localhost:8888/get_partition_stats/${clusterName}`);
+        const response = await axios.get(apiUrl(`/get_partition_stats/${clusterName}`, apiBase));
         const json = response.data;
         processChartData(json);
       } catch (error) {

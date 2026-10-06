@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -22,14 +23,18 @@ import Stack from '@mui/material/Stack';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import { format, subDays, subMonths } from 'date-fns';
+import SettingsIcon from '@mui/icons-material/Settings';
 import GL from './GL';
 import LH from './LH';
 import A2 from './A2';
+import DynamicCluster from './DynamicCluster';
 import About from "./hooks/about";
 import './App.css';
 
 // Import modular components
 import { ThemeContextProvider } from './hooks/ThemeContext';
+import { ConfigProvider, useConfig } from './hooks/ConfigContext';
+import Settings from './hooks/Settings';
 import TerminalComponent from './hooks/TerminalComponent';
 import TerminalButton from './hooks/TerminalButton';
 
@@ -74,7 +79,8 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-const App = () => {
+const AppContent = () => {
+  const { config } = useConfig();
   const [selectedComponent, setSelectedComponent] = useState('Great Lakes');
   const [searchValue, setSearchValue] = useState('');
   const [submittedSearch, setSubmittedSearch] = useState('');
@@ -82,6 +88,7 @@ const App = () => {
   const [_starttime, setStarttime] = useState('');
   const [_endtime, setEndtime] = useState('');
   const [showAbout, setShowAbout] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
 
   useEffect(() => {
@@ -147,6 +154,11 @@ const App = () => {
     if (!submittedSearch) {
       return null;
     }
+    if (selectedComponent.startsWith('custom:')) {
+      const page = config.customPages.find((p) => p.id === selectedComponent.slice(7));
+      if (!page) return null;
+      return <DynamicCluster key={submittedSearch + page.id} page={page} searchValue={submittedSearch} _starttime={_starttime} _endtime={_endtime} />;
+    }
     switch (selectedComponent) {
       case 'Great Lakes':
         return <GL key={submittedSearch} searchValue={submittedSearch} _starttime={_starttime} _endtime={_endtime} />;
@@ -159,9 +171,19 @@ const App = () => {
     }
   };
 
+  const backgroundSx = config.background.type === 'image' && config.background.image
+    ? { backgroundImage: `url(${config.background.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
+    : config.background.type === 'color'
+      ? { backgroundColor: config.background.color }
+      : {};
+
+  const dashboardTitle = selectedComponent.startsWith('custom:')
+    ? (config.customPages.find((p) => p.id === selectedComponent.slice(7))?.label || 'Custom')
+    : selectedComponent;
+
   return (
     <ThemeContextProvider>
-      <Stack>
+      <Stack sx={{ minHeight: '100vh', ...backgroundSx }}>
         <Box sx={{ flexGrow: 1 }}>
           <AppBar sx={{ width: '100vw' }}>
             <Toolbar className="app-toolbar">
@@ -203,7 +225,32 @@ const App = () => {
                       >
                         Lighthouse
                       </MenuItem>
+                      {config.customPages.length > 0 && <Divider sx={{ my: 1 }} />}
+                      {config.customPages.map((page) => (
+                        <MenuItem
+                          key={page.id}
+                          onClick={() => {
+                            setSelectedComponent(`custom:${page.id}`);
+                            popupState.close();
+                          }}
+                        >
+                          {page.label}
+                        </MenuItem>
+                      ))}
+                      {config.customRoutes.map((page) => (
+                        <MenuItem key={page.id} component={Link} to={page.path} onClick={() => popupState.close()}>
+                          {page.label}
+                        </MenuItem>
+                      ))}
                       <Divider sx={{ my: 1 }} />
+                      <MenuItem
+                        onClick={() => {
+                          setShowSettings(true);
+                          popupState.close();
+                        }}
+                      >
+                        Configuration
+                      </MenuItem>
                       <MenuItem
                         onClick={() => {
                           setShowAbout(true);
@@ -222,7 +269,7 @@ const App = () => {
                 component="div"
                 sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }}
               >
-                {selectedComponent} Dashboard
+                {dashboardTitle} Dashboard
               </Typography>
               <Stack direction={{ xs: 'column', md: 'row' }}>
                 <TimerIcon sx={{ color: '#2F65A7', padding: '0.6em 0em 0em 0em' }} />
@@ -253,6 +300,9 @@ const App = () => {
                   />
                 </Search>
               </form>
+              <IconButton color="inherit" title="Configuration" onClick={() => setShowSettings(true)}>
+                <SettingsIcon />
+              </IconButton>
               <TerminalButton 
                 onToggleTerminal={toggleTerminal} 
                 terminalOpen={terminalOpen} 
@@ -294,9 +344,17 @@ const App = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Settings open={showSettings} onClose={() => setShowSettings(false)} />
       </Stack>
     </ThemeContextProvider>
   );
 };
+
+const App = () => (
+  <ConfigProvider>
+    <AppContent />
+  </ConfigProvider>
+);
 
 export default App;
