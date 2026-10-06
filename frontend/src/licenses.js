@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, AppBar, Box, Button, Chip, CircularProgress, Container, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar, Typography } from '@mui/material';
+import { Alert, AppBar, Box, Button, Chip, CircularProgress, Container, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar, Typography, useTheme } from '@mui/material';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import { BarChart, Bar, Cell, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { apiUrl } from './hooks/apiClient';
@@ -11,7 +14,7 @@ import './App.css';
 const number = value => value == null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const monthLabel = value => format(new Date(`${value}-01T12:00:00`), 'MMM yyyy');
 function Insight({ title, months, detail }) {
-  return <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
+  return <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: '12px' }}>
     <Typography fontWeight={700}>{title}</Typography>
     <Typography sx={{ my: 1 }}>{months.length ? months.map(monthLabel).join(', ') : 'None'}</Typography>
     <Typography variant="body2" color="text.secondary">{detail}</Typography>
@@ -20,6 +23,7 @@ function Insight({ title, months, detail }) {
 
 function LicensesContent() {
   const { config } = useConfig();
+  const theme = useTheme();
   const backgroundSx = config.background.type === 'image' && config.background.image
     ? { backgroundImage: `url(${config.background.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
     : config.background.type === 'color'
@@ -59,24 +63,29 @@ function LicensesContent() {
     <Box sx={{ minHeight: '100vh', color: 'text.primary', bgcolor: 'background.default', ...backgroundSx }}>
       <AppBar position="static">
         <Toolbar className="app-toolbar">
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>Licenses Dashboard</Typography>
-          <Button component={Link} to="/" color="inherit">Back to dashboard</Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+            <Box sx={{ display: 'grid', placeItems: 'center', width: 38, height: 38, bgcolor: 'secondary.main', color: '#00274C', borderRadius: '10px' }}><InsightsOutlinedIcon /></Box>
+            <Typography variant="h6" component="div">HPC <Box component="span" sx={{ fontWeight: 400, opacity: 0.7 }}> / Licenses</Box></Typography>
+          </Box>
+          <Button component={Link} to="/" color="inherit" startIcon={<ArrowBackRoundedIcon />} sx={{ fontSize: { xs: 12, sm: 14 } }}>Dashboard</Button>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="xl" sx={{ py: 5 }}>
-        <Typography variant="h4" component="h1" fontWeight={700}>Licenses</Typography>
+      <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
+        <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.16em', fontWeight: 700 }}>RESOURCE ANALYTICS</Typography>
+        <Typography variant="h4" component="h1" sx={{ mt: 0.5 }}>License intelligence</Typography>
         <Typography sx={{ mt: 1, mb: 3 }} color="text.secondary">Explore demand, spot spikes, and find quiet months across completed Slurm jobs.</Typography>
-        <Paper component="form" onSubmit={event => { event.preventDefault(); setQuery({ ...filters }); }} variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 3 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <Paper component="form" onSubmit={event => { event.preventDefault(); setQuery({ ...filters }); }} variant="outlined" sx={{ p: 3, mb: 3, borderRadius: '16px' }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
             <TextField select label="Cluster" name="cluster" value={filters.cluster} onChange={update} size="small" sx={{ minWidth: 170 }}>
               <MenuItem value="greatlakes">Great Lakes</MenuItem><MenuItem value="armis2">Armis2</MenuItem><MenuItem value="lighthouse">Lighthouse</MenuItem>
             </TextField>
             <TextField required type="date" label="From" name="start" value={filters.start} onChange={update} size="small" InputLabelProps={{ shrink: true }} inputProps={{ max: filters.end }} />
             <TextField required type="date" label="Through" name="end" value={filters.end} onChange={update} size="small" InputLabelProps={{ shrink: true }} inputProps={{ min: filters.start }} />
-            <Button type="submit" variant="contained" disabled={loading} disableElevation>{query ? 'Refresh usage' : 'Start'}</Button>
+            <Button type="submit" variant="contained" disabled={loading} startIcon={<PlayArrowRoundedIcon />} sx={{ ml: { md: 'auto !important' }, minWidth: 145 }} disableElevation>{query ? 'Refresh usage' : 'Start'}</Button>
           </Stack>
         </Paper>
-        {!query && <Paper variant="outlined" sx={{ p: 5, mb: 3, borderRadius: 3, textAlign: 'center' }}>
+        {!query && <Paper variant="outlined" sx={{ p: { xs: 4, md: 8 }, mb: 3, borderRadius: '16px', textAlign: 'center', borderStyle: 'dashed', background: theme.palette.mode === 'light' ? 'linear-gradient(135deg, #ffffff, #f0f5fa)' : undefined }}>
+          <Box sx={{ display: 'grid', placeItems: 'center', width: 64, height: 64, mx: 'auto', mb: 3, bgcolor: 'secondary.main', color: '#00274C', borderRadius: '18px' }}><InsightsOutlinedIcon fontSize="large" /></Box>
           <Typography variant="h6" fontWeight={700}>Ready to analyze license usage</Typography>
           <Typography color="text.secondary" sx={{ mt: 1 }}>Choose a cluster and date range, then click Start.</Typography>
         </Paper>}
@@ -85,12 +94,12 @@ function LicensesContent() {
         {data && <>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 3 }}>
             {[['Completed jobs', data.completed_jobs], ['Jobs requesting licenses', data.licensed_jobs], ['Total licenses requested', data.requested_licenses]].map(([label, value]) => (
-              <Paper key={label} variant="outlined" sx={{ p: 3, borderRadius: 3, borderTop: '3px solid #00274C' }}>
-                <Typography color="text.secondary">{label}</Typography><Typography variant="h4" sx={{ mt: 2 }} fontWeight={700}>{value.toLocaleString()}</Typography>
+              <Paper key={label} variant="outlined" sx={{ p: 3, borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,39,76,0.04)' }}>
+                <Typography color="text.secondary">{label}</Typography><Typography variant="h4" sx={{ mt: 2, fontSize: { xs: 32, md: 40 } }} fontWeight={700}>{value.toLocaleString()}</Typography>
               </Paper>
             ))}
           </Box>
-          {stats && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 3 }}>
+          {stats && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: '16px' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }}>
               <Box><Typography variant="h6" fontWeight={700}>Monthly demand</Typography><Typography variant="body2" color="text.secondary">Requests grouped by job completion month</Typography></Box>
               <TextField select label="Analyze license" size="small" value={selectedLicense} onChange={event => setSelectedLicense(event.target.value)} sx={{ minWidth: 220 }}>
@@ -99,14 +108,14 @@ function LicensesContent() {
             </Stack>
             {data.undated_licensed_jobs > 0 && <Alert severity="warning" sx={{ mt: 2 }}>{data.undated_licensed_jobs} licensed jobs could not be assigned to a month. Monthly statistics exclude them.</Alert>}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, my: 3 }}>
-              {[['Monthly average', stats.average], ['Monthly median', stats.median], ['Monthly minimum', stats.min], ['Monthly maximum', stats.max]].map(([label, value]) => <Box key={label} sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h5" fontWeight={700}>{number(value)}</Typography></Box>)}
+              {[['Monthly average', stats.average], ['Monthly median', stats.median], ['Monthly minimum', stats.min], ['Monthly maximum', stats.max]].map(([label, value]) => <Box key={label} sx={{ p: 2, bgcolor: 'action.hover', borderRadius: '12px' }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h5" fontWeight={700}>{number(value)}</Typography></Box>)}
             </Box>
             <Box sx={{ height: 300 }} role="img" aria-label="Monthly requested license quantities; exact values are available in the table below">
               <ResponsiveContainer width="100%" height="100%"><BarChart data={monthly} margin={{ top: 15, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tickFormatter={monthLabel} tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} />
-                <Tooltip labelFormatter={monthLabel} formatter={value => [number(value), 'Licenses requested']} />
-                <Bar dataKey="requested" radius={[5, 5, 0, 0]} maxBarSize={56}>{monthly.map(month => <Cell key={month.month} fill={month.outlier ? '#9A3324' : month.partial ? '#9caab8' : month.status === 'heavy' ? '#FFCB05' : '#00274C'} />)}</Bar>
+                <CartesianGrid stroke={theme.palette.divider} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" tickFormatter={monthLabel} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 12, fill: theme.palette.text.secondary }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, borderColor: theme.palette.divider, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, boxShadow: '0 8px 24px rgba(0,39,76,0.1)' }} labelFormatter={monthLabel} formatter={value => [number(value), 'Licenses requested']} />
+                <Bar dataKey="requested" radius={[5, 5, 0, 0]} maxBarSize={56}>{monthly.map(month => <Cell key={month.month} fill={month.outlier ? '#9A3324' : month.partial ? '#9caab8' : month.status === 'heavy' ? '#FFCB05' : theme.palette.primary.main} />)}</Bar>
               </BarChart></ResponsiveContainer>
             </Box>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ my: 2 }}><Chip size="small" label="Typical" /><Chip size="small" label="Heavy" sx={{ bgcolor: '#FFCB05', color: '#00274C' }} /><Chip size="small" label="Outlier" sx={{ bgcolor: '#9A3324', color: 'white' }} /><Chip size="small" label="Partial month" variant="outlined" /></Stack>
@@ -116,15 +125,15 @@ function LicensesContent() {
               <Insight title="Dead months" months={stats.dead_months} detail="Zero license requests in complete months" />
               <Insight title="Heavy months" months={stats.heavy_months} detail="At least 1.5× the complete-month average" />
               <Insight title="Statistical outliers" months={stats.outlier_months} detail="Outside the 1.5× IQR fences; requires 4 complete months" />
-              <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}><Typography fontWeight={700}>Coverage</Typography><Typography variant="h5" sx={{ my: 1 }}>{stats.complete_months} complete months</Typography><Typography variant="body2" color="text.secondary">Partial months appear in the trend but are excluded from comparisons.</Typography></Box>
+              <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: '12px' }}><Typography fontWeight={700}>Coverage</Typography><Typography variant="h5" sx={{ my: 1 }}>{stats.complete_months} complete months</Typography><Typography variant="body2" color="text.secondary">Partial months appear in the trend but are excluded from comparisons.</Typography></Box>
             </Box>
             <TableContainer><Table size="small" aria-label="Monthly license demand statistics"><TableHead><TableRow><TableCell>Month</TableCell><TableCell align="right">Requests</TableCell><TableCell align="right">vs. average</TableCell><TableCell>Signal</TableCell></TableRow></TableHead><TableBody>
               {monthly.map(month => <TableRow key={month.month} hover><TableCell>{monthLabel(month.month)}</TableCell><TableCell align="right">{number(month.requested)}</TableCell><TableCell align="right">{!month.partial && stats.average > 0 ? `${(month.requested / stats.average).toFixed(2)}×` : '—'}</TableCell><TableCell><Chip size="small" variant="outlined" label={month.status === 'dead' ? 'Dead · zero requests' : month.status === 'partial' ? 'Partial month' : month.status} />{month.outlier && <Chip size="small" color="error" label={`${month.outlier} outlier`} sx={{ ml: 1 }} />}</TableCell></TableRow>)}
             </TableBody></Table></TableContainer>
             {!stats.complete_months && <Alert severity="info" sx={{ mt: 2 }}>Select at least one complete calendar month to see min/max and month comparisons.</Alert>}
           </Paper>}
-          <Paper variant="outlined" sx={{ overflow: 'hidden', borderRadius: 3 }}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" sx={{ p: 3, borderRadius: 3, borderTop: '3px solid #00274C' }}>
+          <Paper variant="outlined" sx={{ overflow: 'hidden', borderRadius: '16px' }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" sx={{ p: 3, borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,39,76,0.04)' }}>
               <Typography variant="h6">Usage by license</Typography>
               <TextField label="Search licenses" size="small" value={search} onChange={event => setSearch(event.target.value)} />
             </Stack>

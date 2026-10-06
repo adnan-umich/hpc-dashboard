@@ -17,9 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from . import views
+from .services.licenses import get_licenses
 
 
 urlpatterns = [
+    path("licenses/", get_licenses, name="licenses"),
     path("admin/", admin.site.urls),
     path('fetch-root-accounts/', views.fetch_root_account_from_shim, name='fetch_root_account_from_shim'),
     path('get_partition_stats/<str:cluster>/', views.get_partition_stats, name='get_partition_stats'),
