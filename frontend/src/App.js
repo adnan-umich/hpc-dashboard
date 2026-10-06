@@ -225,6 +225,7 @@ const AppContent = () => {
                       >
                         Lighthouse
                       </MenuItem>
+                      <MenuItem component={Link} to="/licenses" onClick={() => popupState.close()}>Licenses</MenuItem>
                       {config.customPages.length > 0 && <Divider sx={{ my: 1 }} />}
                       {config.customPages.map((page) => (
                         <MenuItem

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import Licenses from './licenses';
 import BT from './BT';
 import Shim from './Shim'
 import CustomRoutePage from './CustomRoutePage';
@@ -16,6 +17,7 @@ root.render(
     <Router>
       <Routes>
         <Route path="/" element={<App />} />
+        <Route path="licenses" element={<Licenses />} />
         <Route path="buildtest" element={<BT />} />
         <Route path="shim" element={<Shim />} />
         <Route path="*" element={<CustomRoutePage />} />
