@@ -68,3 +68,47 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Slurm license investigation
+
+Open **Licenses → Advanced investigation**. Select a cluster and a UTC start/end
+interval (up to 93 days), optionally enter an exact uniqname and/or Slurm account,
+and select **Retrieve Slurm jobs**. Both identity filters apply when provided.
+The end timestamp is exclusive. The graph shows exact concurrent requested license units
+by uniqname or account; click a timestamp to inspect its contributing job records.
+Use **Inspect all retrieved jobs** to include jobs without the selected license.
+
+The frontend calls `GET /licenses/investigate/` with `cluster`, `start`, `end`,
+`uniqname`, and `account`. The backend retrieves overlapping intervals from
+`slurm_greatlakes` by default for Great Lakes. It includes jobs that started before
+the window and running jobs through the response snapshot. Jobs without valid
+execution intervals are excluded and reported. Queued jobs have no execution
+interval to plot. Queries matching more than 50,000 jobs require narrower filters.
+
+The endpoint shares the existing `LICENSE_ES_URL`, `LICENSE_ES_API_KEY`, and
+`LICENSE_ES_INDEX_<CLUSTER>` settings. Default source fields and overrides are:
+
+| Source field | Override |
+| --- | --- |
+| `@start` | `LICENSE_ES_START_FIELD` |
+| `@end` | `LICENSE_ES_END_FIELD` |
+| `user` | `LICENSE_ES_USER_FIELD` |
+| `account` | `LICENSE_ES_ACCOUNT_FIELD` |
+| `state` | `LICENSE_ES_STATE_FIELD` |
+| `tres_req` | `LICENSE_ES_TRES_FIELD` |
+| `jobid` | `LICENSE_ES_JOB_ID_FIELD` |
+| `job_name` | `LICENSE_ES_NAME_FIELD` |
+
+Timestamps must include a timezone. Counts sum concurrent job requests at each timestamp and change at job start/end
+events. No hourly averaging is applied.
+Capacity metrics and CSV export include all matching groups for the selected
+license, even when graph lines are hidden. Pool capacity is entered by the user.
+These values represent Slurm requests, not actual license-server checkouts.
+
+The optional `license` query parameter filters retrieved jobs by exact license
+type and combines with uniqname/account filters. `abaqus` and
+`abaqus@slurmdb` both match the Abaqus pool; `ansys` does not match `ansys_hpc`.
+The retrieval form includes the supplied `scontrol show lic` catalog.
+Great Lakes capacity defaults use its supplied totals and remain editable;
+these are reference values, not live totals or historical capacity records.
+Other clusters require manual capacity entry. Zero capacity is supported.

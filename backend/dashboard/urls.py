@@ -18,9 +18,11 @@ from django.contrib import admin
 from django.urls import path
 from . import views
 from .services.licenses import get_licenses
+from .services.license_investigation import investigate_jobs
 
 
 urlpatterns = [
+    path("licenses/investigate/", investigate_jobs, name="license-investigation"),
     path("licenses/", get_licenses, name="licenses"),
     path("admin/", admin.site.urls),
     path('fetch-root-accounts/', views.fetch_root_account_from_shim, name='fetch_root_account_from_shim'),

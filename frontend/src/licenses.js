@@ -10,6 +10,7 @@ import { apiUrl } from './hooks/apiClient';
 import { ThemeContextProvider } from './hooks/ThemeContext';
 import { ConfigProvider, useConfig } from './hooks/ConfigContext';
 import './App.css';
+import LicenseInvestigation from './LicenseInvestigation';
 
 const number = value => value == null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const monthLabel = value => format(new Date(`${value}-01T12:00:00`), 'MMM yyyy');
@@ -71,9 +72,8 @@ function LicensesContent() {
         </Toolbar>
       </AppBar>
       <Container maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>
-        <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.16em', fontWeight: 700 }}>RESOURCE ANALYTICS</Typography>
-        <Typography variant="h4" component="h1" sx={{ mt: 0.5 }}>License intelligence</Typography>
-        <Typography sx={{ mt: 1, mb: 3 }} color="text.secondary">Explore demand, spot spikes, and find quiet months across completed Slurm jobs.</Typography>
+        <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.16em', fontWeight: 700 }}>HPC License Utilization</Typography>
+        <LicenseInvestigation />
         <Paper component="form" onSubmit={event => { event.preventDefault(); setQuery({ ...filters }); }} variant="outlined" sx={{ p: 3, mb: 3, borderRadius: '16px' }}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
             <TextField select label="Cluster" name="cluster" value={filters.cluster} onChange={update} size="small" sx={{ minWidth: 170 }}>
